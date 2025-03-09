@@ -3,60 +3,49 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
+import DailyLog from "@/components/daily-log"; // Import the DailyLog component
 
 const DashboardPage = () => {
   const router = useRouter();
   const supabase = createClient();
 
-  // State to store basic user info
+  // Local state for basic user info.
   const [userId, setUserId] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
-
-  // State to store the unique selected actions (by action_id)
-  const [selectedActions, setSelectedActions] = useState<string[]>([]);
+  // State to store the flat list of selected actions fetched via RPC.
+  const [selectedActions, setSelectedActions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // On mount, check if a session exists; if so, store user info and fetch selected actions.
+  // Function to fetch selected actions using the RPC "get_user_selected_actions".
+  const fetchSelectedActions = async (uid: string) => {
+    console.log("Fetching selected actions for user:", uid);
+    const { data, error } = await supabase.rpc("get_user_selected_actions", { uid });
+    if (error) {
+      console.error("Error fetching selected actions via RPC:", error);
+    } else {
+      console.log("Fetched selected actions (flat):", data);
+      setSelectedActions(data || []);
+    }
+  };
+
+  // On mount: check session, set user info, and fetch selected actions.
   useEffect(() => {
     (async () => {
       const { data: { session }, error } = await supabase.auth.getSession();
-      if (error) {
-        console.error("Error getting session:", error);
+      console.log("Session response:", session, "Error:", error);
+      if (error || !session) {
         router.push("/sign-in");
-      } else if (session) {
-        // Set user email and id
+      } else {
+        console.log("User ID:", session.user.id);
         setUserEmail(session.user.email ?? null);
         setUserId(session.user.id);
-
-        // Now fetch selected actions for this user
-        const { data, error: fetchError } = await supabase
-          .from("selected_actions")
-          .select("action_id")
-          .eq("user_id", session.user.id)
-          .is("removed_from_tracking_on", null);
-
-        if (fetchError) {
-          console.error("Error fetching selected actions:", fetchError);
-        } else if (data) {
-          // Count unique action IDs
-          const uniqueActionIds = Array.from(new Set(data.map((row) => row.action_id)));
-          setSelectedActions(uniqueActionIds);
-        }
+        await fetchSelectedActions(session.user.id);
         setLoading(false);
-      } else {
-        // No session, redirect to sign-in
-        router.push("/sign-in");
       }
     })();
-  }, [router, supabase]);
+  }, [router]);
 
-  // Handler for logging out.
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push("/sign-in");
-  };
-
-  if (loading) return <div>Loading...</div>;
+  if (loading || !userId) return <div>Loading...</div>;
 
   return (
     <div className="p-8">
@@ -66,7 +55,6 @@ const DashboardPage = () => {
           <h1 className="text-3xl font-bold">Dashboard</h1>
           {userEmail && <p className="text-sm">Welcome, {userEmail}</p>}
         </div>
-        {/* Dynamic action button: "Add Actions" if no actions are selected, "Edit Actions" otherwise */}
         <div>
           <button
             onClick={() => router.push("/dashboard/selected-actions")}
@@ -82,17 +70,17 @@ const DashboardPage = () => {
       {/* Main Dashboard Content */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Calendar View Section */}
-        <section className="bg-gray-800 p-4 rounded">
+        <section className="bg-gray-50 dark:bg-gray-800 p-4 rounded">
           <h2 className="text-xl font-semibold mb-4">Calendar</h2>
           {/* TODO: Replace with your Calendar component */}
           <p className="text-sm">[Calendar view placeholder]</p>
         </section>
 
         {/* Daily Log Section */}
-        <section className="bg-gray-800 p-4 rounded">
+        <section className="bg-gray-50 dark:bg-gray-800 p-4 rounded">
           <h2 className="text-xl font-semibold mb-4">Daily Log</h2>
-          {/* TODO: Replace with your Daily Log component */}
-          <p className="text-sm">[Daily log input placeholder]</p>
+          {/* Render the DailyLog component passing the selected actions */}
+          <DailyLog userId={userId} />
         </section>
       </div>
 

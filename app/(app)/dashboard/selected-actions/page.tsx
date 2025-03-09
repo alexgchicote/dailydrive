@@ -8,14 +8,19 @@ const SelectedActionsPage = () => {
   const router = useRouter();
   const supabase = createClient();
 
-  // Local state: all actions data (both selected and unselected)
+  // Local state for all user actions in flat format.
+  // Each row now includes:
+  // - dbSelectedActionId: the original selected_action_id from the database (if any).
+  // - selected_action_id: used locally (can be temporary for pending adds)
+  // - other columns (action_name, intent, category_name, added_to_tracking_on)
   const [userActions, setUserActions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  // Track IDs for pending removals (for actions that exist in DB)
+  // Track pending removals (IDs from the database that need to be updated).
   const [pendingRemovals, setPendingRemovals] = useState<number[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
 
-  // RPC call: get a flat list of user actions (selected or not) from the database.
+  // RPC call to fetch a flat list of user actions.
+  // Each row should include the original dbSelectedActionId and other columns.
   const fetchUserActions = async (uid: string) => {
     console.log("Fetching user actions for user:", uid);
     const { data, error } = await supabase.rpc("get_user_actions", { uid });
@@ -23,11 +28,18 @@ const SelectedActionsPage = () => {
       console.error("Error fetching user actions:", error);
     } else {
       console.log("Fetched user actions (flat):", data);
-      setUserActions(data || []);
+      // Map each row to include a new property 'dbSelectedActionId' (the original DB ID)
+      // and initialize local selected_action_id to the same value.
+      const mappedData = data.map((row: any) => ({
+        ...row,
+        dbSelectedActionId: row.selected_action_id, // store the DB id
+        selected_action_id: row.selected_action_id,  // local copy (can be replaced if pending)
+      }));
+      setUserActions(mappedData || []);
     }
   };
 
-  // On mount: check session and fetch user actions.
+  // On mount, check session and fetch user actions.
   useEffect(() => {
     (async () => {
       const { data: { session }, error } = await supabase.auth.getSession();
@@ -43,47 +55,61 @@ const SelectedActionsPage = () => {
     })();
   }, [router]);
 
-  // Derive two views from userActions:
-  // Selected Actions: rows with a non-null selected_action_id (or pendingAdd flag)
+  // Derive two arrays: selected and unselected actions.
   const selectedActions = userActions.filter(
     (action) => action.selected_action_id !== null || action.pendingAdd
   );
-  // Unselected Actions: rows with a null selected_action_id and not pendingAdd
   const unselectedActions = userActions.filter(
     (action) => action.selected_action_id === null && !action.pendingAdd
   );
 
   // Handler to add an unselected action locally.
-  const handleAddUnselectedAction = (action: any) => {
-    // Mark the action as pendingAdd by updating the state.
+  const handleAddAction = (action: any) => {
     setUserActions((prev) =>
-      prev.map((a) =>
-        a.action_id === action.action_id
-          ? {
+      prev.map((a) => {
+        if (a.action_id === action.action_id) {
+          // If this action was previously removed (has a dbSelectedActionId in pendingRemovals),
+          // remove it from pendingRemovals and restore the original ID.
+          if (pendingRemovals.includes(a.dbSelectedActionId)) {
+            setPendingRemovals((prevRemovals) =>
+              prevRemovals.filter((id) => id !== a.dbSelectedActionId)
+            );
+            return {
               ...a,
-              pendingAdd: true,
-              // Temporary ID using Date.now()
-              selected_action_id: Date.now(),
+              pendingAdd: false,
+              selected_action_id: a.dbSelectedActionId, // restore original DB id
               added_to_tracking_on: new Date().toISOString(),
-            }
-          : a
-      )
+            };
+          }
+          // Otherwise, mark it as pending add with a temporary selected_action_id.
+          return {
+            ...a,
+            pendingAdd: true,
+            selected_action_id: Date.now(), // temporary id
+            added_to_tracking_on: new Date().toISOString(),
+          };
+        }
+        return a;
+      })
     );
   };
 
   // Handler to remove an action locally.
   const handleRemoveAction = (action: any) => {
-    // Mark the action as removed by setting selected_action_id to null and pendingAdd to false.
     setUserActions((prev) =>
       prev.map((a) =>
         a.action_id === action.action_id
-          ? { ...a, pendingAdd: false, selected_action_id: null }
+          ? { 
+                ...a, 
+                pendingAdd: false, 
+                selected_action_id: null 
+            }
           : a
       )
     );
-    // If the action was already saved in the DB, mark it for removal.
-    if (!action.pendingAdd && action.selected_action_id) {
-      setPendingRemovals((prev) => [...prev, action.selected_action_id]);
+    // If the action existed in the DB (i.e., has a dbSelectedActionId), mark it for removal.
+    if (action.dbSelectedActionId) {
+      setPendingRemovals((prev) => [...prev, action.dbSelectedActionId]);
     }
   };
 
@@ -91,7 +117,7 @@ const SelectedActionsPage = () => {
   const handleSaveChanges = async () => {
     if (!userId) return;
 
-    // Process pending additions.
+    // Process pending additions: rows with pendingAdd true.
     const pendingAdditions = userActions.filter((action) => action.pendingAdd);
     if (pendingAdditions.length > 0) {
       const insertData = pendingAdditions.map((action) => ({
@@ -120,7 +146,7 @@ const SelectedActionsPage = () => {
       }
     }
 
-    // Refresh data.
+    // Refresh the data from the database.
     await fetchUserActions(userId);
     setPendingRemovals([]);
   };
@@ -156,7 +182,6 @@ const SelectedActionsPage = () => {
             <th className="px-4 py-2 text-left text-gray-900 dark:text-gray-100">
               Action
             </th>
-            {/* Added Action ID as second column */}
             <th className="px-4 py-2 text-left text-gray-900 dark:text-gray-100">
               ID
             </th>
@@ -175,7 +200,7 @@ const SelectedActionsPage = () => {
           </tr>
         </thead>
         <tbody>
-          {selectedActions.length === 0 ? (
+          {selectedActions.filter((action) => action.selected_action_id !== null).length === 0 ? (
             <tr>
               <td className="px-4 py-2 text-gray-700 dark:text-gray-300" colSpan={6}>
                 No actions selected.
@@ -192,7 +217,6 @@ const SelectedActionsPage = () => {
                   <td className="px-4 py-2 text-gray-700 dark:text-gray-300">
                     {action.action_name || "N/A"}
                   </td>
-                  {/* Display the action_id */}
                   <td className="px-4 py-2 text-gray-700 dark:text-gray-300">
                     {action.action_id || "N/A"}
                   </td>
@@ -227,7 +251,6 @@ const SelectedActionsPage = () => {
             <th className="px-4 py-2 text-left text-gray-900 dark:text-gray-100">
               Action
             </th>
-            {/* Added Action ID as second column */}
             <th className="px-4 py-2 text-left text-gray-900 dark:text-gray-100">
               ID
             </th>
@@ -258,7 +281,6 @@ const SelectedActionsPage = () => {
                 <td className="px-4 py-2 text-gray-700 dark:text-gray-300">
                   {action.action_name || "N/A"}
                 </td>
-                {/* Display the action_id */}
                 <td className="px-4 py-2 text-gray-700 dark:text-gray-300">
                   {action.action_id || "N/A"}
                 </td>
@@ -270,7 +292,7 @@ const SelectedActionsPage = () => {
                 </td>
                 <td className="px-4 py-2 text-center">
                   <button
-                    onClick={() => handleAddUnselectedAction(action)}
+                    onClick={() => handleAddAction(action)}
                     className="bg-green-600 text-white px-2 py-1 rounded"
                   >
                     Add
