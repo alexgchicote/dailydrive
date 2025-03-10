@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import DailyLog from "@/components/daily-log"; // Import the DailyLog component
+import ActionsCalendar from "@/components/actions-calendar";
 
 const DashboardPage = () => {
   const router = useRouter();
@@ -18,15 +19,22 @@ const DashboardPage = () => {
 
   // Function to fetch selected actions using the RPC "get_user_selected_actions".
   const fetchSelectedActions = async (uid: string) => {
-    console.log("Fetching selected actions for user:", uid);
-    const { data, error } = await supabase.rpc("get_user_selected_actions", { uid });
+    console.log("Fetching selected actions edit button:", uid);
+    const { data, error } = await supabase
+      .from("selected_actions")
+      .select(`
+        selected_action_id
+      `)
+      .eq("user_id", uid)
+      .is("removed_from_tracking_on", null);
     if (error) {
-      console.error("Error fetching selected actions via RPC:", error);
+      console.error("Error fetching selected actions edit button:", error);
     } else {
-      console.log("Fetched selected actions (flat):", data);
+      console.log("Fetched selected actions edit button:", data);
       setSelectedActions(data || []);
     }
   };
+  
 
   // On mount: check session, set user info, and fetch selected actions.
   useEffect(() => {
@@ -39,7 +47,7 @@ const DashboardPage = () => {
         console.log("User ID:", session.user.id);
         setUserEmail(session.user.email ?? null);
         setUserId(session.user.id);
-        await fetchSelectedActions(session.user.id);
+        fetchSelectedActions(session.user.id)
         setLoading(false);
       }
     })();
@@ -73,7 +81,7 @@ const DashboardPage = () => {
         <section className="bg-gray-50 dark:bg-gray-800 p-4 rounded">
           <h2 className="text-xl font-semibold mb-4">Calendar</h2>
           {/* TODO: Replace with your Calendar component */}
-          <p className="text-sm">[Calendar view placeholder]</p>
+          <ActionsCalendar userId={userId} />
         </section>
 
         {/* Daily Log Section */}
