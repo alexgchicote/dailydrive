@@ -3,12 +3,14 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { Circle, CircleCheck, CircleX } from 'lucide-react';
+import { BloomFilter } from "next/dist/shared/lib/bloom-filter";
 
 // Define a type for the selected action
 interface SelectedAction {
     selected_action_id: number;
     action_name: string;
     intent: "engage" | "avoid";
+    category_id: number;
     // other fields as needed
 }
 
@@ -33,20 +35,51 @@ const DailyLog = ({ userId, onActionToggle }: DailyLogProps) => {
     minDateObj.setDate(new Date().getDate() - 7);
     const minDate = minDateObj.toISOString().split("T")[0];
 
-    // Function to fetch selected actions for a given date.
     const fetchSelectedActionsByDate = async (uid: string, selDate: string) => {
         console.log("Fetching selected actions for user:", uid, "for date:", selDate);
-        const { data, error } = await supabase.rpc("get_user_selected_actions_by_date", {
-            uid,
-            sel_date: selDate,
-        });
+        // Build the query:
+        const { data, error } = await supabase
+            .from("selected_actions")
+            .select(`
+                selected_action_id,
+                action_id,
+                added_to_tracking_on,
+                actions_list (
+                    action_name,
+                    intent,
+                    actions_categories (
+                        category_id,
+                        category_name
+                    )
+                )
+            `)
+            .eq("user_id", uid)
+            // Filter for rows where added_to_tracking_on is less than or equal to selDate.
+            // (Assuming dates are stored in a comparable string format, e.g. "YYYY-MM-DD")
+            .filter("added_to_tracking_on", "lte", selDate)
+            // Filter such that either removed_from_tracking_on is null or greater than selDate.
+            .or(`removed_from_tracking_on.is.null,removed_from_tracking_on.gt.${selDate}`);
+
         if (error) {
             console.error("Error fetching selected actions for date:", error);
         } else {
             console.log("Fetched actions for date", selDate, ":", data);
-            setSelectedActions(data || []);
+            // Flatten the nested result:
+            const flatData = data.map((row: any) => ({
+                selected_action_id: row.selected_action_id,
+                action_id: row.action_id,
+                added_to_tracking_on: row.added_to_tracking_on,
+                // Our nested select returns an object under the alias "selected_actions" for the actions_list join.
+                action_name: row.actions_list?.action_name || null,
+                intent: row.actions_list?.intent || null,
+                // The joined actions_categories is available under its alias.
+                category_id: row.actions_list?.actions_categories?.category_id || null,
+                category_name: row.actions_list?.actions_categories?.category_name || null,
+            }));
+            setSelectedActions(flatData || []);
         }
     };
+
 
     // useEffect to refetch selected actions when selectedDate changes.
     useEffect(() => {
@@ -66,24 +99,65 @@ const DailyLog = ({ userId, onActionToggle }: DailyLogProps) => {
         });
     };
 
-    // Compute outcome based on intent and status.
-    // For "engage": done = positive, not done = negative.
-    // For "avoid": done = negative, not done = positive.
-    const computeOutcome = (intent: "engage" | "avoid", done: boolean): string => {
+    // TODO: update compute outcome based on comments below
+    // Compute outcome based on intent, status and status of sibling actions (actions that are under the same category)
+    // For "engage": 
+    //  - status = true then positive
+    //  - status = false and parent_status = true (at least one sibling action was done) then neutral
+    //  - status = false and parent_status = false then negative
+    // For "avoid": can't be neutral for avoids because if its done then it is negative regardless
+    //  - status = true then negative
+    //  - status = false then positive
+    const computeOutcome = (
+        intent: "engage" | "avoid",
+        status: boolean,
+        parent_status: boolean
+    ): string => {
         if (intent === "engage") {
-            return done ? "positive" : "negative";
+            if (status) return "positive";
+            return parent_status ? "neutral" : "negative";
         } else {
-            return done ? "negative" : "positive";
+            // For avoid actions, done means negative, not done means positive.
+            return status ? "negative" : "positive";
         }
     };
 
-    // Save the log: 
+    // Helper function to compute parent statuses (grouped by category).
+    // It returns an object mapping each category_id (as string) to a boolean.
+    // Group by category_id get the max status (if all false then false if at least one true then true)
+    // this will give a dict key = category_id, value = parent_status
+    const computeParentStatuses = (
+        actions: any[],
+        doneStatus: Record<number, boolean>
+    ): Record<string, boolean> => {
+        const parentStatuses: Record<string, boolean> = {};
+        // Group actions by category_id.
+        const categoryGroups: Record<string, any[]> = {};
+        actions.forEach((action) => {
+            // Assume each action has a category_id field.
+            const catId = action.category_id;
+            if (!categoryGroups[catId]) {
+                categoryGroups[catId] = [];
+            }
+            categoryGroups[catId].push(action);
+        });
+        // For each category, if at least one action is marked done, parent_status is true.
+        Object.keys(categoryGroups).forEach((catId) => {
+            const group = categoryGroups[catId];
+            const anyDone = group.some((action) => doneStatus[action.selected_action_id]);
+            parentStatuses[catId] = anyDone;
+        });
+        console.log("Computed parent statuses:", parentStatuses);
+        return parentStatuses;
+    };
+
+    // Save the log (in daily_actions_log and user_days): 
     // Invalidate previous logs for that user and day
-    // Insert records into daily_actions_log for each selected action.
+    // Insert records into daily_actions_log for each selected action and user_days (aggregated view).
     const handleSaveLog = async () => {
         if (!userId) return;
 
-        // First, update any existing daily log rows for this user and date, marking them as invalid (is_valid = 0).
+        // 1. Invalidate previous daily log rows for this user and date.
         const { error: updateError } = await supabase
             .from("daily_actions_log")
             .update({ is_valid: 0 })
@@ -92,29 +166,108 @@ const DailyLog = ({ userId, onActionToggle }: DailyLogProps) => {
             .eq("is_valid", 1);
 
         if (updateError) {
-            console.error("Error updating previous log entries:", updateError);
+            console.error("Error updating previous daily log entries:", updateError);
             return;
         }
 
-        // Build an array of new rows to insert.
-        const rowsToInsert = selectedActions.map((action) => {
-            const done = doneStatus[action.selected_action_id] || false;
+        // 2. Compute parent statuses based on selectedActions and doneStatus.
+        const parentStatuses = computeParentStatuses(selectedActions, doneStatus);
+
+        // 3. Build new daily log rows for each selected action.
+        const dailyLogToInsert = selectedActions.map((action) => {
+            const status = doneStatus[action.selected_action_id] || false;
+            const parent_status = parentStatuses[action.category_id] || false;
             return {
                 user_id: userId,  // Ensure this column exists in your table.
                 log_date: selectedDate,
                 selected_action_id: action.selected_action_id,
-                status: done, // true for done, false for skipped/avoided.
-                outcome: computeOutcome(action.intent, done),
-                is_valid: 1, // Mark the new row as valid.
-                log_timestamp: new Date().toISOString()
+                status: status, // true if done, false if not.
+                parent_status: parent_status, // aggregated status for the category.
+                outcome: computeOutcome(action.intent, status, parent_status),
+                is_valid: 1, // Mark as valid.
             };
         });
 
-        const { error } = await supabase.from("daily_actions_log").insert(rowsToInsert);
-        if (error) {
-            console.error("Error saving daily log:", error);
+        const { error: insertDailyError } = await supabase.from("daily_actions_log").insert(dailyLogToInsert);
+        if (insertDailyError) {
+            console.error("Error saving daily log entries:", insertDailyError);
+            return;
         } else {
-            alert("Daily log saved successfully!");
+            console.log("Daily log entries inserted successfully.");
+        }
+
+        // 4. Aggregate values for the user_days table.
+        // For engage actions:
+        const engageActions = selectedActions.filter((a) => a.intent === "engage");
+        const num_engage_actions_total = engageActions.length;
+        const num_engage_actions_positive = engageActions.filter((a) => {
+            const status = doneStatus[a.selected_action_id] || false;
+            const parent_status = parentStatuses[a.category_id] || false;
+            return computeOutcome(a.intent, status, parent_status) === "positive";
+        }).length;
+        const num_engage_actions_neutral = engageActions.filter((a) => {
+            const status = doneStatus[a.selected_action_id] || false;
+            const parent_status = parentStatuses[a.category_id] || false;
+            return computeOutcome(a.intent, status, parent_status) === "neutral";
+        }).length;
+
+        // For avoid actions:
+        const avoidActions = selectedActions.filter((a) => a.intent === "avoid");
+        const num_avoid_actions_total = avoidActions.length;
+        const num_avoid_actions_positive = avoidActions.filter((a) => {
+            const status = doneStatus[a.selected_action_id] || false;
+            const parent_status = parentStatuses[a.category_id] || false;
+            return computeOutcome(a.intent, status, parent_status) === "positive";
+        }).length;
+
+        // Count distinct categories tracked.
+        const distinctCategories = Array.from(new Set(selectedActions.map((a) => a.category_id)));
+        const num_categories_tracked = distinctCategories.length;
+
+        console.log("Aggregates:", {
+            num_engage_actions_total,
+            num_engage_actions_positive,
+            num_engage_actions_neutral,
+            num_avoid_actions_total,
+            num_avoid_actions_positive,
+            num_categories_tracked,
+        });
+
+        // 5. Invalidate previous user_days row for this user and date.
+        const { error: updateUserDaysError } = await supabase
+            .from("user_days")
+            .update({ is_valid: false })
+            .eq("user_id", userId)
+            .eq("log_date", selectedDate)
+            .eq("is_valid", true);
+
+        if (updateUserDaysError) {
+            console.error("Error updating previous user_days entries:", updateUserDaysError);
+            return;
+        }
+
+        // 6. Insert a new row into user_days with the aggregated values.
+        const userDaysRow = {
+            user_id: userId,
+            log_date: selectedDate,
+            num_engage_actions_total,
+            num_engage_actions_positive,
+            num_engage_actions_neutral,
+            num_avoid_actions_total,
+            num_avoid_actions_positive,
+            num_categories_tracked,
+            is_valid: true
+        };
+
+        const { error: insertUserDaysError } = await supabase
+            .from("user_days")
+            .insert(userDaysRow);
+
+        if (insertUserDaysError) {
+            console.error("Error inserting user_days row:", insertUserDaysError);
+        } else {
+            console.log("User_days row inserted successfully.");
+            alert("Daily log and summary saved successfully!");
         }
     };
 

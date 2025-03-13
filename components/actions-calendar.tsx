@@ -27,13 +27,7 @@ const ActionsCalendar = ({ userId }: ActionsCalendarProps) => {
     const [distinctActions, setDistinctActions] = useState<string[]>([]);
 
     const today = new Date();
-    const startDate = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate());
-
-    // // Helper function to convert a date string from "YYYY-MM-DD" to "DD/MM/YYYY"
-    // const convertToEnGBFormat = (dateStr: string): string => {
-    //     const [year, month, day] = dateStr.split("-");
-    //     return `${day}/${month}/${year}`;
-    // };
+    const startDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 34);
 
     // Fetch logs from daily_actions_log.
     const fetchLogs = async (uid: string) => {
@@ -49,7 +43,11 @@ const ActionsCalendar = ({ userId }: ActionsCalendarProps) => {
                 selected_actions (
                     actions_list (
                         action_name,
-                        intent
+                        intent,
+                        actions_categories (
+                            category_id,
+                            category_name
+                        )
                     )
                 )
             `)
@@ -67,6 +65,7 @@ const ActionsCalendar = ({ userId }: ActionsCalendarProps) => {
                 log_date: new Date(log.log_date).toLocaleDateString("en-GB"),
                 selected_action_id: log.selected_action_id,
                 action_name: log.selected_actions?.actions_list?.action_name || "Unknown",
+                category_name: log.selected_actions?.actions_list?.actions_categories?.category_name || "Unknown",
                 outcome: log.outcome,
             }));
 
