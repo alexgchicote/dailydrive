@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import DailyLog from "@/components/daily-log"; // Import the DailyLog component
-import ActionsCalendar from "@/components/actions-calendar";
+import ActionsCalendarGrid from "@/components/actions-calendar";
 
 const DashboardPage = () => {
   const router = useRouter();
@@ -81,7 +81,7 @@ const DashboardPage = () => {
         <section className="bg-gray-50 dark:bg-gray-800 p-4 rounded">
           <h2 className="text-xl font-semibold mb-4">Calendar</h2>
           {/* TODO: Replace with your Calendar component */}
-          <ActionsCalendar userId={userId} />
+          <ActionsCalendarGrid userId={userId} />
         </section>
 
         {/* Daily Log Section */}

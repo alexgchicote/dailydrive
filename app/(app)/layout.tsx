@@ -21,10 +21,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           {!hasEnvVars ? <EnvVarWarning /> : <HeaderAuth />}
         </div>
       </nav>
-      <div className="flex flex-col gap-20 max-w-5xl p-5">
+      {/* Added mx-auto to center this container and increased the available width */}
+      <div className="flex flex-col gap-20 max-w-5xl p-5 mx-auto">
         {children}
       </div>
     </div>
   );
 }
-
