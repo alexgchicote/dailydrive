@@ -11,6 +11,7 @@ interface SelectedAction {
     action_name: string;
     intent: "engage" | "avoid";
     category_id: number;
+    group_category: boolean;
     // other fields as needed
 }
 
@@ -32,7 +33,7 @@ const DailyLog = ({ userId, onActionToggle }: DailyLogProps) => {
 
     // Compute the minimum selectable date (today minus 7 days).
     const minDateObj = new Date();
-    minDateObj.setDate(new Date().getDate() - 7);
+    minDateObj.setDate(new Date().getDate() - 30);
     const minDate = minDateObj.toISOString().split("T")[0];
 
     const fetchSelectedActionsByDate = async (uid: string, selDate: string) => {
@@ -44,6 +45,7 @@ const DailyLog = ({ userId, onActionToggle }: DailyLogProps) => {
                 selected_action_id,
                 action_id,
                 added_to_tracking_on,
+                group_category,
                 actions_list (
                     action_name,
                     intent,
@@ -69,6 +71,7 @@ const DailyLog = ({ userId, onActionToggle }: DailyLogProps) => {
                 selected_action_id: row.selected_action_id,
                 action_id: row.action_id,
                 added_to_tracking_on: row.added_to_tracking_on,
+                group_category: row.group_category,
                 // Our nested select returns an object under the alias "selected_actions" for the actions_list join.
                 action_name: row.actions_list?.action_name || null,
                 intent: row.actions_list?.intent || null,
@@ -111,11 +114,17 @@ const DailyLog = ({ userId, onActionToggle }: DailyLogProps) => {
     const computeOutcome = (
         intent: "engage" | "avoid",
         status: boolean,
-        parent_status: boolean
+        parent_status: boolean,
+        group_category?: boolean
     ): string => {
         if (intent === "engage") {
-            if (status) return "positive";
-            return parent_status ? "neutral" : "negative";
+            if (status) {
+                return "positive";
+            } else if (!group_category) { // if not group with category then it can't be neutral
+                return "negative";
+            } else {
+                return parent_status ? "neutral" : "negative";
+            }
         } else {
             // For avoid actions, done means negative, not done means positive.
             return status ? "negative" : "positive";
@@ -183,7 +192,7 @@ const DailyLog = ({ userId, onActionToggle }: DailyLogProps) => {
                 selected_action_id: action.selected_action_id,
                 status: status, // true if done, false if not.
                 parent_status: parent_status, // aggregated status for the category.
-                outcome: computeOutcome(action.intent, status, parent_status),
+                outcome: computeOutcome(action.intent, status, parent_status, action.group_category),
                 is_valid: 1, // Mark as valid.
             };
         });
@@ -193,7 +202,7 @@ const DailyLog = ({ userId, onActionToggle }: DailyLogProps) => {
             console.error("Error saving daily log entries:", insertDailyError);
             return;
         } else {
-            console.log("Daily log entries inserted successfully.");
+            console.log("Daily log entries inserted successfully:", selectedDate);
         }
 
         // 4. Aggregate values for the user_days table.
@@ -203,12 +212,29 @@ const DailyLog = ({ userId, onActionToggle }: DailyLogProps) => {
         const num_engage_actions_positive = engageActions.filter((a) => {
             const status = doneStatus[a.selected_action_id] || false;
             const parent_status = parentStatuses[a.category_id] || false;
-            return computeOutcome(a.intent, status, parent_status) === "positive";
+            return computeOutcome(a.intent, status, parent_status, a.group_category) === "positive";
         }).length;
+        const num_engage_actions_negative = engageActions
+            .filter((a) => {
+                const status = doneStatus[a.selected_action_id] || false;
+                const parent_status = parentStatuses[a.category_id] || false;
+                return (
+                    computeOutcome(a.intent, status, parent_status, a.group_category) === "negative" &&
+                    !a.group_category // Ensure group_category is false
+                );
+            }).length
+            +
+            // Distinct count of category IDs where parent_status === false. I.e. the number of categories that were skipped
+            new Set(
+                engageActions
+                    .filter((a) => !parentStatuses[a.category_id]) // Only include categories where parent_status is false
+                    .map((a) => a.category_id) // Extract category IDs
+            ).size;
+
         const num_engage_actions_neutral = engageActions.filter((a) => {
             const status = doneStatus[a.selected_action_id] || false;
             const parent_status = parentStatuses[a.category_id] || false;
-            return computeOutcome(a.intent, status, parent_status) === "neutral";
+            return computeOutcome(a.intent, status, parent_status, a.group_category) === "neutral";
         }).length;
 
         // For avoid actions:
@@ -217,8 +243,23 @@ const DailyLog = ({ userId, onActionToggle }: DailyLogProps) => {
         const num_avoid_actions_positive = avoidActions.filter((a) => {
             const status = doneStatus[a.selected_action_id] || false;
             const parent_status = parentStatuses[a.category_id] || false;
-            return computeOutcome(a.intent, status, parent_status) === "positive";
+            return computeOutcome(a.intent, status, parent_status, a.group_category) === "positive";
         }).length;
+        const num_avoid_actions_negative = avoidActions.filter((a) => {
+            const status = doneStatus[a.selected_action_id] || false;
+            const parent_status = parentStatuses[a.category_id] || false;
+            return computeOutcome(a.intent, status, parent_status, a.group_category) === "negative";
+        }).length;
+
+        const actions_day_grade = (
+            num_engage_actions_positive + 
+            num_avoid_actions_positive
+        ) / (
+            num_engage_actions_positive + 
+            num_avoid_actions_positive + 
+            num_engage_actions_negative + 
+            num_avoid_actions_negative
+        )
 
         // Count distinct categories tracked.
         const distinctCategories = Array.from(new Set(selectedActions.map((a) => a.category_id)));
@@ -227,10 +268,13 @@ const DailyLog = ({ userId, onActionToggle }: DailyLogProps) => {
         console.log("Aggregates:", {
             num_engage_actions_total,
             num_engage_actions_positive,
+            num_engage_actions_negative,
             num_engage_actions_neutral,
             num_avoid_actions_total,
             num_avoid_actions_positive,
+            num_avoid_actions_negative,
             num_categories_tracked,
+            actions_day_grade
         });
 
         // 5. Invalidate previous user_days row for this user and date.
@@ -252,10 +296,13 @@ const DailyLog = ({ userId, onActionToggle }: DailyLogProps) => {
             log_date: selectedDate,
             num_engage_actions_total,
             num_engage_actions_positive,
+            num_engage_actions_negative,
             num_engage_actions_neutral,
             num_avoid_actions_total,
             num_avoid_actions_positive,
+            num_avoid_actions_negative,
             num_categories_tracked,
+            actions_day_grade,
             is_valid: true
         };
 

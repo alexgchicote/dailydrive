@@ -4,11 +4,12 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 
 // Define a type for a log entry
-interface LogEntry {
+interface DayEntry {
     log_date: string; // in YYYY-MM-DD format
-    selected_action_id: number;
+    selected_action_id?: number;
     action_name: string;
-    outcome: "positive" | "negative";
+    outcome?: "positive" | "negative" | "neutral";
+    actions_day_grade?: number | null; // Make optional if nullable
 }
 
 // Props for the ActionsCalendar component
@@ -20,7 +21,9 @@ const ActionsCalendar = ({ userId }: ActionsCalendarProps) => {
     const supabase = createClient();
 
     // State to store flattened log data from daily_actions_log.
-    const [rawLogs, setRawLogs] = useState<LogEntry[]>([]);
+    const [rawLogs, setRawLogs] = useState<DayEntry[]>([]);
+    // User Days
+    const [userDays, setUserDays] = useState<DayEntry[]>([]);
     // Dropdown filter: selected action name.
     const [filterAction, setFilterAction] = useState<string>("All");
     // Distinct action names for the dropdown.
@@ -61,7 +64,7 @@ const ActionsCalendar = ({ userId }: ActionsCalendarProps) => {
             console.log("Fetched actions log:", data);
 
             // Flatten the logs.
-            const flatLogs: LogEntry[] = data.map((log: any) => ({
+            const flatLogs: DayEntry[] = data.map((log: any) => ({
                 log_date: new Date(log.log_date).toLocaleDateString("en-GB"),
                 selected_action_id: log.selected_action_id,
                 action_name: log.selected_actions?.actions_list?.action_name || "Unknown",
@@ -78,19 +81,49 @@ const ActionsCalendar = ({ userId }: ActionsCalendarProps) => {
         }
     };
 
+    const fetchUserDays = async (uid: string) => {
+        console.log("Fetching user's days for user:", uid);
+    
+        const { data, error } = await supabase
+            .from("user_days")
+            .select(`
+                log_date,
+                actions_day_grade
+            `)
+            .eq("user_id", uid)
+            .eq("is_valid", 1)
+            .gt("log_date", startDate.toISOString().split("T")[0]);
+    
+        if (error) {
+            console.error("Error fetching user's days:", error);
+        } else {
+            console.log("Fetched user's days:", data);
+    
+            setUserDays(
+                data.map((day: any) => ({
+                    log_date: new Date(day.log_date).toLocaleDateString("en-GB"),
+                    actions_day_grade: day.actions_day_grade,
+                    action_name: "All"
+                }))
+            );
+        }
+    };
+    
+
     // useEffect to fetch logs when userId changes.
     useEffect(() => {
         if (userId) {
             fetchLogs(userId);
+            fetchUserDays(userId);
         }
     }, [userId]);
 
     // Filter logs based on selected action.
-    const filteredLogs = filterAction === "All" ? rawLogs : rawLogs.filter((log) => log.action_name === filterAction);
+    const filteredLogs = filterAction === "All" ? userDays : rawLogs.filter((log) => log.action_name === filterAction);
 
     // Build a map for quick lookup of logs by date.
     // We convert each raw log date to en-GB format so it matches generated dates.
-    const logDateMap = new Map<string, LogEntry>();
+    const logDateMap = new Map<string, DayEntry>();
     filteredLogs.forEach((log) => {
         // const key = convertToEnGBFormat(log.log_date);
         logDateMap.set(log.log_date, log);
@@ -114,14 +147,40 @@ const ActionsCalendar = ({ userId }: ActionsCalendarProps) => {
 
     // Get color for each date based on outcome.
     // If no log exists, return gray. If log exists, green for positive outcome, red for negative.
-    const getColorForDate = (date: string): string => {
+    const getColorForDate = (date: string, filterAction: string): string => {
+        const green = "bg-green-500";
+        const yellow = "bg-yellow-500";
+        const red = "bg-red-500";
+        const gray = "bg-gray-500";
+    
         const log = logDateMap.get(date);
         if (!log) {
-            return "bg-gray-500";
+            return gray;
         }
-        console.log(`For date ${date}: outcome=${log.outcome}`);
-        return log.outcome === "positive" ? "bg-green-500" : "bg-red-500";
+    
+        if (filterAction === "All") {
+            const grade = log.actions_day_grade ?? 0; // Default to 0 if null or undefined
+            if (grade === 1) {
+                return green;
+            } else if (grade > 0.6 && grade < 1) {
+                return yellow;
+            } else {
+                return red;
+            }
+        } else {
+            // Ensure correct string comparison
+            const outcome = (log.outcome ?? "").trim().toLowerCase(); 
+    
+            if (outcome === "positive") {
+                return green;
+            } else if (outcome === "neutral") { 
+                return yellow; 
+            } else {
+                return red;
+            }
+        }
     };
+    
 
     return (
         <div className="p-4">
@@ -146,7 +205,7 @@ const ActionsCalendar = ({ userId }: ActionsCalendarProps) => {
 
             <div className="grid grid-cols-7 gap-1">
                 {reversedDates.map((date) => (
-                    <div key={date} className={`w-8 h-8 rounded ${getColorForDate(date)}`} title={date}>
+                    <div key={date} className={`w-8 h-8 rounded ${getColorForDate(date, filterAction)}`} title={date}>
                         {/* Optionally display the date or count on hover */}
                     </div>
                 ))}
