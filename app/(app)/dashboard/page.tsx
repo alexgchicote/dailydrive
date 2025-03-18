@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
-import ActionsCalendarGrid from "@/components/actions-calendar";
+import { ActionsCalendarGrid } from "@/components/actions-calendar";
 import { ChartVisual } from "@/components/value-chart";
 
 const DashboardPage = () => {

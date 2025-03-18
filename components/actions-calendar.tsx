@@ -13,13 +13,97 @@ interface DayEntry {
     actions_day_grade?: number | null; // Make optional if nullable
 }
 
+// Weekday labels with Monday at top.
+const WEEK_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+interface CalendarDayProps {
+    date: Date
+    logDateMap: Map<string, DayEntry>;
+    filterAction: string;
+    handleDateClick: (date: string) => void;
+}
+
+const CalendarDay: React.FC<CalendarDayProps> = ({ date, logDateMap, filterAction, handleDateClick }) => {
+    const isPastOrToday = date <= new Date();
+
+    const today = new Date();
+
+    const isToday = (date: Date) => {
+        const today = new Date();
+        return (
+            date.getFullYear() === today.getFullYear() &&
+            date.getMonth() === today.getMonth() &&
+            date.getDate() === today.getDate()
+        );
+    };
+
+    // Get color for each date based on outcome.
+    const getColorForDate = (date: Date, filterAction: string): string => {
+        const green = "bg-green-500";
+        const yellow = "bg-yellow-500";
+        const red = "bg-red-500";
+        const gray = "bg-gray-300 dark:bg-gray-500";
+
+        if (date > today) {
+            return "bg-gray-200 dark:bg-gray-700";
+        }
+
+        // CHANGED: matching key as YYYY-MM-DD string
+        const key = date.toISOString().split("T")[0];
+        const log = logDateMap.get(key);
+        if (!log) {
+            return gray;
+        }
+
+        if (filterAction === "All") {
+            const grade = log.actions_day_grade ?? 0; // Default to 0 if null or undefined
+            if (grade === 1) {
+                return green;
+            } else if (grade > 0.6 && grade < 1) {
+                return yellow;
+            } else {
+                return red;
+            }
+        } else {
+            const outcome = (log.outcome ?? "").trim().toLowerCase();
+
+            if (outcome === "positive") {
+                return green;
+            } else if (outcome === "neutral") {
+                return yellow;
+            } else {
+                return red;
+            }
+        }
+    };
+
+    const commonClasses = `w-8 h-8 rounded flex items-center justify-center 
+      ${getColorForDate(date, filterAction)}
+      ${isToday(date) ? "border-2 border-blue-800 dark:border-blue-200" : ""}
+      ${isPastOrToday ? "cursor-pointer hover:bg-gray-300 dark:hover:bg-blue-700" : "cursor-default opacity-50"}`;
+
+    return isPastOrToday ? (
+        //  Render a button if date is today or in the past
+        <button
+            onClick={() => handleDateClick(date.toISOString().split("T")[0])}
+            className={commonClasses}
+            title={date.toLocaleDateString("en-GB")}
+        >
+            {date.getDate()}
+        </button>
+    ) : (
+        // Render a div for future dates (non-clickable)
+        <div className={commonClasses} title={date.toLocaleDateString("en-GB")}>
+            {date.getDate()}
+        </div>
+    );
+};
+
+
 // Props for the ActionsCalendar component
 interface ActionsCalendarProps {
     userId: string;
 }
-
-// Weekday labels with Monday at top.
-const WEEK_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 const ActionsCalendarGrid = ({ userId }: ActionsCalendarProps) => {
     const supabase = createClient();
@@ -128,18 +212,6 @@ const ActionsCalendarGrid = ({ userId }: ActionsCalendarProps) => {
         setIsModalOpen(true);
     };
 
-    // Genrate Calendar grid
-    const today = new Date();
-
-    const isToday = (date: Date) => {
-        const today = new Date();
-        return (
-            date.getFullYear() === today.getFullYear() &&
-            date.getMonth() === today.getMonth() &&
-            date.getDate() === today.getDate()
-        );
-    };
-
     // Compute the grid date range based on rawLogs, if available.
     let computedStartDate: Date;
 
@@ -157,6 +229,8 @@ const ActionsCalendarGrid = ({ userId }: ActionsCalendarProps) => {
     const dayOfWeek = startMonday.getDay();
     const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
     startMonday.setDate(startMonday.getDate() + diffToMonday);
+
+    const today = new Date();
 
     // Determine the end of the grid: the Sunday of the current week.
     const endSunday = new Date(today);
@@ -182,46 +256,6 @@ const ActionsCalendarGrid = ({ userId }: ActionsCalendarProps) => {
     filteredLogs.forEach((log) => {
         logDateMap.set(log.log_date.toISOString().split("T")[0], log);
     });
-
-    // Get color for each date based on outcome.
-    const getColorForDate = (date: Date, filterAction: string): string => {
-        const green = "bg-green-500";
-        const yellow = "bg-yellow-500";
-        const red = "bg-red-500";
-        const gray = "bg-gray-300 dark:bg-gray-500";
-
-        if (date > today) {
-            return "bg-gray-200 dark:bg-gray-700";
-        }
-
-        // CHANGED: matching key as YYYY-MM-DD string
-        const key = date.toISOString().split("T")[0];
-        const log = logDateMap.get(key);
-        if (!log) {
-            return gray;
-        }
-
-        if (filterAction === "All") {
-            const grade = log.actions_day_grade ?? 0; // Default to 0 if null or undefined
-            if (grade === 1) {
-                return green;
-            } else if (grade > 0.6 && grade < 1) {
-                return yellow;
-            } else {
-                return red;
-            }
-        } else {
-            const outcome = (log.outcome ?? "").trim().toLowerCase();
-
-            if (outcome === "positive") {
-                return green;
-            } else if (outcome === "neutral") {
-                return yellow;
-            } else {
-                return red;
-            }
-        }
-    };
 
     return (
         <div className="p-4">
@@ -262,14 +296,13 @@ const ActionsCalendarGrid = ({ userId }: ActionsCalendarProps) => {
                     {weeks.slice().reverse().map((week, weekIndex) => (
                         <div key={weekIndex} className="grid grid-cols-7 gap-1">
                             {week.map((date, dayIndex) => (
-                                <button
-                                    key={dayIndex}
-                                    onClick={() => handleDateClick(date.toISOString().split("T")[0])}
-                                    className={`w-8 h-8 rounded flex items-center justify-center ${getColorForDate(date, filterAction)} ${isToday(date) ? "border border-black dark:border-white" : ""}`}
-                                    title={date.toLocaleDateString("en-GB")}
-                                >
-                                    {date.getDate()}
-                                </button>
+                                <CalendarDay
+                                    key={date.toISOString()} // Ensure uniqueness
+                                    date={date}
+                                    logDateMap={logDateMap}
+                                    filterAction={filterAction}
+                                    handleDateClick={handleDateClick}
+                                />
                             ))}
                         </div>
                     ))}
@@ -285,4 +318,4 @@ const ActionsCalendarGrid = ({ userId }: ActionsCalendarProps) => {
     );
 };
 
-export default ActionsCalendarGrid;
+export { ActionsCalendarGrid };
