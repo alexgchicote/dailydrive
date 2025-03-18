@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
+import { DailyLog, DailyLogModal } from "@/components/daily-log";
 
 // Define a type for a log entry
 interface DayEntry {
@@ -32,49 +33,12 @@ const ActionsCalendarGrid = ({ userId }: ActionsCalendarProps) => {
     // Distinct action names for the dropdown.
     const [distinctActions, setDistinctActions] = useState<string[]>([]);
 
-    const today = new Date();
+    // Modal State
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
-    const isToday = (date: Date) => {
-        const today = new Date();
-        return (
-            date.getFullYear() === today.getFullYear() &&
-            date.getMonth() === today.getMonth() &&
-            date.getDate() === today.getDate()
-        );
-    };
-
-    // Choose how many weeks you want to display.
-    const numWeeks = 10;
-
-    // Determine the starting date for the grid.
-    const approxStart = new Date(today);
-    approxStart.setDate(today.getDate() - (numWeeks * 4 - 1));
-
-    // Adjust approxStart to the Monday of that week.
-    const startMonday = new Date(approxStart);
-    const dayOfWeek = startMonday.getDay();
-    const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-    startMonday.setDate(startMonday.getDate() + diffToMonday);
-
-    // Determine the end of the grid: the Sunday of the current week.
-    const endSunday = new Date(today);
-    const currentDay = endSunday.getDay();
-    const diffToSunday = currentDay === 0 ? 0 : 7 - currentDay;
-    endSunday.setDate(endSunday.getDate() + diffToSunday);
-
-    // Build an array of weeks. Each week is an array of 7 Date objects (from Monday to Sunday).
-    const weeks: Date[][] = [];
-    const current = new Date(startMonday);
-    while (current <= endSunday) {
-        const week: Date[] = [];
-        for (let i = 0; i < 7; i++) {
-            week.push(new Date(current));
-            current.setDate(current.getDate() + 1);
-        }
-        weeks.push(week);
-    }
-
-    const startDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 34);
+    // Filter logs based on selected action.
+    const filteredLogs = filterAction === "All" ? userDays : rawLogs.filter((log) => log.action_name === filterAction);
 
     // Fetch logs from daily_actions_log.
     const fetchLogs = async (uid: string) => {
@@ -99,8 +63,7 @@ const ActionsCalendarGrid = ({ userId }: ActionsCalendarProps) => {
                 )
             `)
             .eq("user_id", uid)
-            .eq("is_valid", 1)
-            .gt("log_date", startDate.toISOString().split("T")[0]);
+            .eq("is_valid", 1);
 
         if (error) {
             console.error("Error fetching action logs:", error);
@@ -134,8 +97,7 @@ const ActionsCalendarGrid = ({ userId }: ActionsCalendarProps) => {
                 actions_day_grade
             `)
             .eq("user_id", uid)
-            .eq("is_valid", 1)
-            .gt("log_date", startDate.toISOString().split("T")[0]);
+            .eq("is_valid", 1);
 
         if (error) {
             console.error("Error fetching user's days:", error);
@@ -160,8 +122,59 @@ const ActionsCalendarGrid = ({ userId }: ActionsCalendarProps) => {
         }
     }, [userId]);
 
-    // Filter logs based on selected action.
-    const filteredLogs = filterAction === "All" ? userDays : rawLogs.filter((log) => log.action_name === filterAction);
+    // Function to open the modal and set selected date
+    const handleDateClick = (date: string) => {
+        setSelectedDate(date);
+        setIsModalOpen(true);
+    };
+
+    // Genrate Calendar grid
+    const today = new Date();
+
+    const isToday = (date: Date) => {
+        const today = new Date();
+        return (
+            date.getFullYear() === today.getFullYear() &&
+            date.getMonth() === today.getMonth() &&
+            date.getDate() === today.getDate()
+        );
+    };
+
+    // Compute the grid date range based on rawLogs, if available.
+    let computedStartDate: Date;
+
+    if (rawLogs.length > 0) {
+        // Sort the logs by date ascending.
+        const sortedLogs = [...rawLogs].sort((a, b) => a.log_date.getTime() - b.log_date.getTime());
+        computedStartDate = sortedLogs[0].log_date;
+    } else {
+        // If no logs, show a message instead of rendering the calendar.
+        return <div className="p-4 text-center">Start Logging actions to view your history log</div>;
+    }
+
+    // Adjust approxStart to the Monday of that week.
+    const startMonday = new Date(computedStartDate);
+    const dayOfWeek = startMonday.getDay();
+    const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    startMonday.setDate(startMonday.getDate() + diffToMonday);
+
+    // Determine the end of the grid: the Sunday of the current week.
+    const endSunday = new Date(today);
+    const currentDay = endSunday.getDay();
+    const diffToSunday = currentDay === 0 ? 0 : 7 - currentDay;
+    endSunday.setDate(endSunday.getDate() + diffToSunday);
+
+    // Build an array of weeks. Each week is an array of 7 Date objects (from Monday to Sunday).
+    const weeks: Date[][] = [];
+    const current = new Date(startMonday);
+    while (current <= endSunday) {
+        const week: Date[] = [];
+        for (let i = 0; i < 7; i++) {
+            week.push(new Date(current));
+            current.setDate(current.getDate() + 1);
+        }
+        weeks.push(week);
+    }
 
     // Build a map for quick lookup of logs by date.
     // CHANGED: now using Date keys (converted to ISO strings for consistency)
@@ -170,29 +183,15 @@ const ActionsCalendarGrid = ({ userId }: ActionsCalendarProps) => {
         logDateMap.set(log.log_date.toISOString().split("T")[0], log);
     });
 
-    // Helper function to generate dates for a given period in en-GB format.
-    const generateDates = (startDate: Date, endDate: Date): Date[] => { // CHANGED: return Date objects
-        const dates: Date[] = [];
-        const current = new Date(startDate);
-        while (current <= endDate) {
-            dates.push(new Date(current));
-            current.setDate(current.getDate() + 1);
-        }
-        return dates;
-    };
-
-    // Generate an array of dates (not used for grid rendering now)
-    const allDates = generateDates(startDate, today);
-
     // Get color for each date based on outcome.
     const getColorForDate = (date: Date, filterAction: string): string => {
         const green = "bg-green-500";
         const yellow = "bg-yellow-500";
         const red = "bg-red-500";
-        const gray = "bg-gray-500";
+        const gray = "bg-gray-300 dark:bg-gray-500";
 
         if (date > today) {
-            return "bg-gray-700";
+            return "bg-gray-200 dark:bg-gray-700";
         }
 
         // CHANGED: matching key as YYYY-MM-DD string
@@ -245,42 +244,43 @@ const ActionsCalendarGrid = ({ userId }: ActionsCalendarProps) => {
                 </select>
             </div>
 
-            <div className="flex">
-                {/* Y-axis: Week day labels */}
-                {/* CHANGED: using a grid with 7 rows of fixed height (2rem each) for alignment */}
-                <div className="grid gap-1" style={{ gridTemplateRows: "repeat(7, 2rem)" }}>
-                    {WEEK_DAYS.map((day) => (
+            <div>
+                {/* Header Row for Weekday Labels */}
+                <div className="grid grid-cols-7 gap-1 mb-2">
+                    {WEEK_DAYS.map((day, index) => (
                         <div
-                            key={day}
-                            className="w-16 h-8 flex items-center justify-end pr-2 text-sm text-gray-700"
+                            key={index}
+                            className="w-8 h-8 flex items-center justify-center text-sm text-gray-700 dark:text-gray-300"
                         >
                             {day}
                         </div>
                     ))}
                 </div>
 
-                {/* Grid: each column is a week (left to right), each row is a day (Mon at top, Sun at bottom) */}
-                {/* CHANGED: setting grid columns explicitly based on the number of weeks */}
-                <div
-                    className="grid gap-1"
-                    style={{ gridTemplateColumns: `repeat(${weeks.length}, 2rem)` }}
-                >
-                    {weeks.map((week, weekIndex) => (
-                        <div key={weekIndex} className="grid grid-rows-7 gap-1">
+                {/* Week Rows: latest week at the top */}
+                <div className="space-y-1">
+                    {weeks.slice().reverse().map((week, weekIndex) => (
+                        <div key={weekIndex} className="grid grid-cols-7 gap-1">
                             {week.map((date, dayIndex) => (
-                                <div
+                                <button
                                     key={dayIndex}
-                                    className={`w-8 h-8 rounded ${getColorForDate(date, filterAction)} ${isToday(date)
-                                            ? "border border-black dark:border-white"
-                                            : ""
-                                        }`}
+                                    onClick={() => handleDateClick(date.toISOString().split("T")[0])}
+                                    className={`w-8 h-8 rounded flex items-center justify-center ${getColorForDate(date, filterAction)} ${isToday(date) ? "border border-black dark:border-white" : ""}`}
                                     title={date.toLocaleDateString("en-GB")}
-                                />
+                                >
+                                    {date.getDate()}
+                                </button>
                             ))}
                         </div>
                     ))}
                 </div>
             </div>
+            {/* Daily Log Modal inside Calendar */}
+            {selectedDate && new Date(selectedDate) <= today && (
+                <DailyLogModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
+                    <DailyLog userId={userId} selectedDate={selectedDate} />
+                </DailyLogModal>
+            )}
         </div>
     );
 };

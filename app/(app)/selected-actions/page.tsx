@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
+import { Switch } from "@/components/ui/switch"
 
 const SelectedActionsPage = () => {
   const router = useRouter();
@@ -27,13 +28,12 @@ const SelectedActionsPage = () => {
     if (error) {
       console.error("Error fetching user actions:", error);
     } else {
-      console.log("Fetched user actions (flat):", data);
+      console.log("Fetched user actions:", data);
       // Map each row to include a new property 'dbSelectedActionId' (the original DB ID)
       // and initialize local selected_action_id to the same value.
       const mappedData = data.map((row: any) => ({
         ...row,
         dbSelectedActionId: row.selected_action_id, // store the DB id
-        selected_action_id: row.selected_action_id,  // local copy (can be replaced if pending)
       }));
       setUserActions(mappedData || []);
     }
@@ -99,11 +99,11 @@ const SelectedActionsPage = () => {
     setUserActions((prev) =>
       prev.map((a) =>
         a.action_id === action.action_id
-          ? { 
-                ...a, 
-                pendingAdd: false, 
-                selected_action_id: null 
-            }
+          ? {
+            ...a,
+            pendingAdd: false,
+            selected_action_id: null
+          }
           : a
       )
     );
@@ -154,10 +154,10 @@ const SelectedActionsPage = () => {
   if (loading) return <div>Loading...</div>;
 
   return (
-    <div className="p-8">
+    <div className="p-8 max-w-5xl flex-col flex mx-auto">
       {/* Dashboard Header */}
       <header className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Selected Actions</h1>
+        <h1 className="text-3xl font-bold">Edit Actions to Track</h1>
         <div className="flex gap-4">
           <button
             onClick={handleSaveChanges}
@@ -194,6 +194,9 @@ const SelectedActionsPage = () => {
             <th className="px-4 py-2 text-left text-gray-900 dark:text-gray-100">
               Intent
             </th>
+            <th className="px-4 py-2 text-left text-gray-900 dark:text-gray-100">
+              Group w. Category
+            </th>
             <th className="px-4 py-2 text-center text-gray-900 dark:text-gray-100">
               Remove
             </th>
@@ -228,6 +231,9 @@ const SelectedActionsPage = () => {
                   </td>
                   <td className="px-4 py-2 text-gray-700 dark:text-gray-300">
                     {action.intent || "N/A"}
+                  </td>
+                  <td className="px-4 py-2 text-gray-700 dark:text-gray-300">
+                      <Switch id="airplane-mode" />
                   </td>
                   <td className="px-4 py-2 text-center">
                     <button

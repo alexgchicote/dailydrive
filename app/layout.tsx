@@ -1,6 +1,5 @@
-// app/layout.tsx
+// // app/layout.tsx
 import { ThemeProvider } from "next-themes";
-import { ThemeSwitcher } from "@/components/theme-switcher";
 import "./globals.css";
 
 export const metadata = {
@@ -11,18 +10,17 @@ export const metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className="dark" style={{ colorScheme: "dark" }}>
-      <body>
+      <body className="flex flex-col min-h-screen">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <main className="min-h-screen">
-            {/* Removed items-center to allow content to span full width */}
+          <main className="flex-1 flex flex-col">
+            {/* Content wrapper grows to fill space */}
             <div className="flex-1 w-full flex flex-col gap-20">
               {children}
-              <footer className="w-full flex items-center justify-center border-t text-center text-xs gap-8 py-16">
-                <p>Powered by AGC</p>
-                <ThemeSwitcher />
-              </footer>
             </div>
           </main>
+          <footer className="w-full border-t border-gray-300 dark:border-white/10 flex items-center justify-center h-16">
+            <p>Powered by AGC</p>
+          </footer>
         </ThemeProvider>
       </body>
     </html>

@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
-import DailyLog from "@/components/daily-log"; // Import the DailyLog component
 import ActionsCalendarGrid from "@/components/actions-calendar";
+import { ChartVisual } from "@/components/value-chart";
 
 const DashboardPage = () => {
   const router = useRouter();
@@ -34,7 +34,7 @@ const DashboardPage = () => {
       setSelectedActions(data || []);
     }
   };
-  
+
 
   // On mount: check session, set user info, and fetch selected actions.
   useEffect(() => {
@@ -61,40 +61,51 @@ const DashboardPage = () => {
       <header className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold">Dashboard</h1>
-          {userEmail && <p className="text-sm">Welcome, {userEmail}</p>}
         </div>
-        <div>
-          <button
-            onClick={() => router.push("/dashboard/selected-actions")}
-            className="bg-purple-600 text-white px-4 py-2 rounded"
-          >
-            {selectedActions.length < 1
-              ? "Add Actions"
-              : `Edit Actions (${selectedActions.length})`}
-          </button>
-        </div>
+        <button
+          onClick={() => router.push("/selected-actions")}
+          className="bg-purple-600 text-white px-4 py-2 rounded"
+        >
+          {selectedActions.length < 1
+            ? "Add Actions"
+            : `Edit Actions (${selectedActions.length})`}
+        </button>
       </header>
 
-      {/* Main Dashboard Content */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* Calendar View Section */}
-        <section className="bg-gray-50 dark:bg-gray-800 p-4 rounded">
+      {/* Responsive Grid */}
+      {/* On large screens, force a fixed row height (here 500px, adjust as needed) */}
+      <div
+        className="
+          grid grid-cols-1 gap-8 
+          md:grid-cols-2 md:grid-rows-1
+          lg:grid-cols-3 lg:grid-rows-1 lg:h-auto
+        "
+      >
+        {/* Calendar Section */}
+        <section
+          className="
+            bg-gray-50 dark:bg-gray-800 p-4 rounded
+            min-w-[300px]
+            lg:h-full overflow-auto
+            md:row-start-1 md:col-start-1 
+            lg:col-span-1
+          "
+        >
           <h2 className="text-xl font-semibold mb-4">Calendar</h2>
-          {/* TODO: Replace with your Calendar component */}
           <ActionsCalendarGrid userId={userId} />
         </section>
 
-        {/* Daily Log Section */}
-        <section className="bg-gray-50 dark:bg-gray-800 p-4 rounded">
-          <h2 className="text-xl font-semibold mb-4">Daily Log</h2>
-          {/* Render the DailyLog component passing the selected actions */}
-          <DailyLog userId={userId} />
-        </section>
-      </div>
-
-      {/* Optional: Additional analytics */}
-      <div className="mt-8">
-        <p className="text-sm">[Additional dashboard analytics placeholder]</p>
+        {/* Chart Visual Section */}
+        <div
+          className="
+            rounded 
+            lg:h-full overflow-auto
+            md:col-span-2 md:row-start-1
+            lg:col-span-2 lg:row-start-1
+          "
+        >
+          <ChartVisual userId={userId} />
+        </div>
       </div>
     </div>
   );
