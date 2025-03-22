@@ -13,11 +13,11 @@ const DashboardPage = () => {
   // Local state for basic user info.
   const [userId, setUserId] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
-  // State to store the flat list of selected actions fetched via RPC.
+  // State to store the flat list of selected actions 
   const [selectedActions, setSelectedActions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Function to fetch selected actions using the RPC "get_user_selected_actions".
+  // Function to fetch selected actions using the
   const fetchSelectedActions = async (uid: string) => {
     console.log("Fetching selected actions edit button:", uid);
     const { data, error } = await supabase

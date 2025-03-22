@@ -63,18 +63,13 @@ const DailyLog = ({ userId, selectedDate }: DailyLogProps) => {
                 ),
                 daily_actions_log (
                     status,
-                    daily_actions_reflections (
-                        action_reflection_id,
-                        reflection
-                    )
+                    notes
                 )
             `)
             .eq("user_id", uid) // filters selected_actions by user
             .filter("added_to_tracking_on", "lte", selDate)
             .or(`removed_from_tracking_on.is.null,removed_from_tracking_on.gt.${selDate}`)
             .eq("daily_actions_log.log_date", selDate)
-            .eq("daily_actions_log.is_valid", true);
-
 
         if (error) {
             console.error("Error fetching selected actions for date:", error);
@@ -90,8 +85,7 @@ const DailyLog = ({ userId, selectedDate }: DailyLogProps) => {
                 category_id: row.actions_list?.actions_categories?.category_id || 0,
                 category_name: row.actions_list?.actions_categories?.category_name || "Uncategorized",
                 status: row.daily_actions_log?.[0]?.status ?? null, // ← FIX HERE
-                action_reflection_id: row.daily_actions_log?.[0]?.daily_actions_reflections?.action_reflection_id,
-                reflection: row.daily_actions_log?.[0]?.daily_actions_reflections?.reflection,
+                reflection: row.daily_actions_log?.[0]?.notes,
             }));
             setSelectedActions(flatData || []);
 
@@ -102,14 +96,14 @@ const DailyLog = ({ userId, selectedDate }: DailyLogProps) => {
             }, {} as Record<number, boolean>);
             setDoneStatus(doenStatusMap);
 
-    
+
             // Build doneStatus object from flatData
             const notesMap: Record<number, string> = flatData.reduce((acc, curr) => {
                 if (curr.reflection != null && curr.reflection.trim() !== "") {
-                  acc[curr.selected_action_id] = curr.reflection;
+                    acc[curr.selected_action_id] = curr.reflection;
                 }
                 return acc;
-              }, {} as Record<number, string>);
+            }, {} as Record<number, string>);
             setNotes(notesMap);
 
         }
@@ -193,6 +187,7 @@ const DailyLog = ({ userId, selectedDate }: DailyLogProps) => {
         const parentStatuses = computeParentStatuses(selectedActions, doneStatus);
 
         // Build an array of daily log rows for JSON parameter.
+        // Build daily log payload: an array of objects with the required keys.
         const dailyLogsPayload = selectedActions.map((action) => {
             const status = doneStatus[action.selected_action_id] || false;
             const parent_status = parentStatuses[action.category_id] || false;
@@ -201,19 +196,12 @@ const DailyLog = ({ userId, selectedDate }: DailyLogProps) => {
                 status,
                 outcome: computeOutcome(action.intent, status, parent_status, action.group_category),
                 parent_status,
+                // Include any note attached to the action.
+                notes: notes[action.selected_action_id] || "",
             };
         });
 
-        // Build the daily reflections payload.
-        // Assume you have a state or variable `notes` that is a Record mapping selected_action_id to note text.
-        // Filter out empty notes.
-        const dailyReflectionsPayload = Object.entries(notes)
-            .filter(([_, note]) => note.trim() !== "")
-            .map(([selected_action_id, reflection]) => ({
-                selected_action_id: selected_action_id,
-                reflection: reflection,
-            }));
-
+        // Build the user_days payload: a single JSON object with aggregated values.
         // Compute aggregates for user_days:
         const engageActions = selectedActions.filter((a) => a.intent === "engage");
         const num_engage_actions_total = engageActions.length;
@@ -265,30 +253,28 @@ const DailyLog = ({ userId, selectedDate }: DailyLogProps) => {
                 num_engage_actions_negative +
                 num_avoid_actions_negative);
 
-        // Call the RPC function that does the invalidation and insertions in one atomic operation.
-        const { error } = await supabase.rpc("insert_user_log_from_daily_log", {
-            p_user_id: userId,
-            p_log_date: reselectedDate, // Format "YYYY-MM-DD"
-            p_num_engage_actions_total: num_engage_actions_total,
-            p_num_engage_actions_positive: num_engage_actions_positive,
-            p_num_engage_actions_neutral: num_engage_actions_neutral,
-            p_num_engage_actions_negative: num_engage_actions_negative,
-            p_num_avoid_actions_total: num_avoid_actions_total,
-            p_num_avoid_actions_positive: num_avoid_actions_positive,
-            p_num_avoid_actions_negative: num_avoid_actions_negative,
-            p_num_categories_tracked: num_categories_tracked,
-            p_actions_day_grade: actions_day_grade,
-            p_daily_logs: dailyLogsPayload,
-            p_daily_reflections: dailyReflectionsPayload,
-        });
+        const userDaysPayload = {
+            num_engage_actions_total,
+            num_engage_actions_positive,
+            num_engage_actions_neutral,
+            num_engage_actions_negative,
+            num_avoid_actions_total,
+            num_avoid_actions_positive,
+            num_avoid_actions_negative,
+            num_categories_tracked,
+            actions_day_grade,
+        };
 
-        console.log("Notes:");
-        Object.entries(notes).forEach(([actionId, note]) => {
-            console.log(`${actionId}: ${note}`);
+        // Call the RPC function with the encapsulated JSON payloads.
+        const { error } = await supabase.rpc("upsert_user_log_payloads", {
+            p_user_id: userId,
+            p_log_date: reselectedDate, // Ensure this is in "YYYY-MM-DD" format.
+            p_user_days: userDaysPayload,
+            p_daily_logs: dailyLogsPayload,
         });
 
         if (error) {
-            console.error("Error in RPC insert:", error);
+            console.error("Error in RPC upsert:", error);
         } else {
             alert("Daily log and summary saved successfully!");
         }

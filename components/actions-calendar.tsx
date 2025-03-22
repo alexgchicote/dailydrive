@@ -147,7 +147,6 @@ const ActionsCalendarGrid = ({ userId }: ActionsCalendarProps) => {
                 )
             `)
             .eq("user_id", uid)
-            .eq("is_valid", 1);
 
         if (error) {
             console.error("Error fetching action logs:", error);
@@ -181,7 +180,6 @@ const ActionsCalendarGrid = ({ userId }: ActionsCalendarProps) => {
                 actions_day_grade
             `)
             .eq("user_id", uid)
-            .eq("is_valid", 1);
 
         if (error) {
             console.error("Error fetching user's days:", error);
