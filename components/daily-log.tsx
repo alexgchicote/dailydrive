@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Fragment } from "react";
 import { createClient } from "@/utils/supabase/client";
-import { Circle, CircleCheck, CircleX } from "lucide-react";
+import { Circle, CircleCheck, CircleX, Pencil, PencilOff } from "lucide-react";
 import { ReactNode } from "react";
 
 // Define a type for a selected action
@@ -13,21 +13,26 @@ interface SelectedAction {
     category_id: number;
     category_name: string;
     group_category: boolean;
+    status: boolean | null;
+    action_reflection_id?: number;
+    reflection?: string;
     // additional fields as needed
 }
 
 interface DailyLogProps {
     userId: string;
-    onActionToggle?: (actionId: number, done: boolean) => void;
     selectedDate: string;
 }
 
-const DailyLog = ({ userId, selectedDate, onActionToggle }: DailyLogProps) => {
+const DailyLog = ({ userId, selectedDate }: DailyLogProps) => {
     const supabase = createClient();
 
     // Local state for the selected actions and done toggles.
     const [selectedActions, setSelectedActions] = useState<SelectedAction[]>([]);
     const [doneStatus, setDoneStatus] = useState<Record<number, boolean>>({});
+    // Local state to store notes text per action
+    const [notes, setNotes] = useState<Record<number, string>>({});
+
     // Local state for selectedDate (assumed to be in "YYYY-MM-DD" format)
     const today = new Date().toISOString().split("T")[0];
     const [reselectedDate, setReselectedDate] = useState<string>(selectedDate);
@@ -49,20 +54,27 @@ const DailyLog = ({ userId, selectedDate, onActionToggle }: DailyLogProps) => {
                 added_to_tracking_on,
                 group_category,
                 actions_list (
-                    action_name,
+                action_name,
                     intent,
                     actions_categories (
                         category_id,
                         category_name
                     )
+                ),
+                daily_actions_log (
+                    status,
+                    daily_actions_reflections (
+                        action_reflection_id,
+                        reflection
+                    )
                 )
             `)
-            .eq("user_id", uid)
-            // Filter for rows where added_to_tracking_on is less than or equal to selDate.
-            // (Assuming dates are stored in a comparable string format, e.g. "YYYY-MM-DD")
+            .eq("user_id", uid) // filters selected_actions by user
             .filter("added_to_tracking_on", "lte", selDate)
-            // Filter such that either removed_from_tracking_on is null or greater than selDate.
-            .or(`removed_from_tracking_on.is.null,removed_from_tracking_on.gt.${selDate}`);
+            .or(`removed_from_tracking_on.is.null,removed_from_tracking_on.gt.${selDate}`)
+            .eq("daily_actions_log.log_date", selDate)
+            .eq("daily_actions_log.is_valid", true);
+
 
         if (error) {
             console.error("Error fetching selected actions for date:", error);
@@ -77,8 +89,29 @@ const DailyLog = ({ userId, selectedDate, onActionToggle }: DailyLogProps) => {
                 intent: row.actions_list?.intent || "engage",
                 category_id: row.actions_list?.actions_categories?.category_id || 0,
                 category_name: row.actions_list?.actions_categories?.category_name || "Uncategorized",
+                status: row.daily_actions_log?.[0]?.status ?? null, // ← FIX HERE
+                action_reflection_id: row.daily_actions_log?.[0]?.daily_actions_reflections?.action_reflection_id,
+                reflection: row.daily_actions_log?.[0]?.daily_actions_reflections?.reflection,
             }));
             setSelectedActions(flatData || []);
+
+            // Build doneStatus object from flatData
+            const doenStatusMap: Record<number, boolean> = flatData.reduce((acc, curr) => {
+                acc[curr.selected_action_id] = Boolean(curr.status);
+                return acc;
+            }, {} as Record<number, boolean>);
+            setDoneStatus(doenStatusMap);
+
+    
+            // Build doneStatus object from flatData
+            const notesMap: Record<number, string> = flatData.reduce((acc, curr) => {
+                if (curr.reflection != null && curr.reflection.trim() !== "") {
+                  acc[curr.selected_action_id] = curr.reflection;
+                }
+                return acc;
+              }, {} as Record<number, string>);
+            setNotes(notesMap);
+
         }
         setLoading(false);
     };
@@ -90,16 +123,7 @@ const DailyLog = ({ userId, selectedDate, onActionToggle }: DailyLogProps) => {
         }
     }, [userId, reselectedDate]);
 
-    // Toggle the done status for an action.
-    const handleToggle = (selected_action_id: number) => {
-        setDoneStatus((prev) => {
-            const newStatus = !prev[selected_action_id];
-            if (onActionToggle) {
-                onActionToggle(selected_action_id, newStatus);
-            }
-            return { ...prev, [selected_action_id]: newStatus };
-        });
-    };
+
 
     // TODO: update compute outcome based on comments below
     // Compute outcome based on intent, status and status of sibling actions (actions that are under the same category)
@@ -165,47 +189,32 @@ const DailyLog = ({ userId, selectedDate, onActionToggle }: DailyLogProps) => {
     const handleSaveLog = async () => {
         if (!userId) return;
 
-        // 1. Invalidate previous daily log rows for this user and date.
-        const { error: updateError } = await supabase
-            .from("daily_actions_log")
-            .update({ is_valid: 0 })
-            .eq("user_id", userId)
-            .eq("log_date", reselectedDate)
-            .eq("is_valid", 1);
-
-        if (updateError) {
-            console.error("Error updating previous daily log entries:", updateError);
-            return;
-        }
-
-        // 2. Compute parent statuses based on selectedActions and doneStatus.
+        // Compute parent statuses using your helper.
         const parentStatuses = computeParentStatuses(selectedActions, doneStatus);
 
-        // 3. Build new daily log rows for each selected action.
-        const dailyLogToInsert = selectedActions.map((action) => {
+        // Build an array of daily log rows for JSON parameter.
+        const dailyLogsPayload = selectedActions.map((action) => {
             const status = doneStatus[action.selected_action_id] || false;
             const parent_status = parentStatuses[action.category_id] || false;
             return {
-                user_id: userId,  // Ensure this column exists in your table.
-                log_date: reselectedDate,
                 selected_action_id: action.selected_action_id,
-                status: status, // true if done, false if not.
-                parent_status: parent_status, // aggregated status for the category.
+                status,
                 outcome: computeOutcome(action.intent, status, parent_status, action.group_category),
-                is_valid: 1, // Mark as valid.
+                parent_status,
             };
         });
 
-        const { error: insertDailyError } = await supabase.from("daily_actions_log").insert(dailyLogToInsert);
-        if (insertDailyError) {
-            console.error("Error saving daily log entries:", insertDailyError);
-            return;
-        } else {
-            console.log("Daily log entries inserted successfully:", reselectedDate);
-        }
+        // Build the daily reflections payload.
+        // Assume you have a state or variable `notes` that is a Record mapping selected_action_id to note text.
+        // Filter out empty notes.
+        const dailyReflectionsPayload = Object.entries(notes)
+            .filter(([_, note]) => note.trim() !== "")
+            .map(([selected_action_id, reflection]) => ({
+                selected_action_id: selected_action_id,
+                reflection: reflection,
+            }));
 
-        // 4. Aggregate values for the user_days table.
-        // For engage actions:
+        // Compute aggregates for user_days:
         const engageActions = selectedActions.filter((a) => a.intent === "engage");
         const num_engage_actions_total = engageActions.length;
         const num_engage_actions_positive = engageActions.filter((a) => {
@@ -213,30 +222,26 @@ const DailyLog = ({ userId, selectedDate, onActionToggle }: DailyLogProps) => {
             const parent_status = parentStatuses[a.category_id] || false;
             return computeOutcome(a.intent, status, parent_status, a.group_category) === "positive";
         }).length;
-        const num_engage_actions_negative = engageActions
-            .filter((a) => {
+        const num_engage_actions_negative =
+            engageActions.filter((a) => {
                 const status = doneStatus[a.selected_action_id] || false;
                 const parent_status = parentStatuses[a.category_id] || false;
                 return (
                     computeOutcome(a.intent, status, parent_status, a.group_category) === "negative" &&
-                    !a.group_category // Ensure group_category is false
+                    !a.group_category
                 );
-            }).length
-            +
-            // Distinct count of category IDs where parent_status === false. I.e. the number of categories that were skipped
+            }).length +
             new Set(
                 engageActions
-                    .filter((a) => !parentStatuses[a.category_id]) // Only include categories where parent_status is false
-                    .map((a) => a.category_id) // Extract category IDs
+                    .filter((a) => !parentStatuses[a.category_id])
+                    .map((a) => a.category_id)
             ).size;
-
         const num_engage_actions_neutral = engageActions.filter((a) => {
             const status = doneStatus[a.selected_action_id] || false;
             const parent_status = parentStatuses[a.category_id] || false;
             return computeOutcome(a.intent, status, parent_status, a.group_category) === "neutral";
         }).length;
 
-        // For avoid actions:
         const avoidActions = selectedActions.filter((a) => a.intent === "avoid");
         const num_avoid_actions_total = avoidActions.length;
         const num_avoid_actions_positive = avoidActions.filter((a) => {
@@ -250,72 +255,45 @@ const DailyLog = ({ userId, selectedDate, onActionToggle }: DailyLogProps) => {
             return computeOutcome(a.intent, status, parent_status, a.group_category) === "negative";
         }).length;
 
-        const actions_day_grade = (
-            num_engage_actions_positive +
-            num_avoid_actions_positive
-        ) / (
-                num_engage_actions_positive +
-                num_avoid_actions_positive +
-                num_engage_actions_negative +
-                num_avoid_actions_negative
-            )
-
-        // Count distinct categories tracked.
         const distinctCategories = Array.from(new Set(selectedActions.map((a) => a.category_id)));
         const num_categories_tracked = distinctCategories.length;
 
-        console.log("Aggregates:", {
-            num_engage_actions_total,
-            num_engage_actions_positive,
-            num_engage_actions_negative,
-            num_engage_actions_neutral,
-            num_avoid_actions_total,
-            num_avoid_actions_positive,
-            num_avoid_actions_negative,
-            num_categories_tracked,
-            actions_day_grade
+        const actions_day_grade =
+            (num_engage_actions_positive + num_avoid_actions_positive) /
+            (num_engage_actions_positive +
+                num_avoid_actions_positive +
+                num_engage_actions_negative +
+                num_avoid_actions_negative);
+
+        // Call the RPC function that does the invalidation and insertions in one atomic operation.
+        const { error } = await supabase.rpc("insert_user_log_from_daily_log", {
+            p_user_id: userId,
+            p_log_date: reselectedDate, // Format "YYYY-MM-DD"
+            p_num_engage_actions_total: num_engage_actions_total,
+            p_num_engage_actions_positive: num_engage_actions_positive,
+            p_num_engage_actions_neutral: num_engage_actions_neutral,
+            p_num_engage_actions_negative: num_engage_actions_negative,
+            p_num_avoid_actions_total: num_avoid_actions_total,
+            p_num_avoid_actions_positive: num_avoid_actions_positive,
+            p_num_avoid_actions_negative: num_avoid_actions_negative,
+            p_num_categories_tracked: num_categories_tracked,
+            p_actions_day_grade: actions_day_grade,
+            p_daily_logs: dailyLogsPayload,
+            p_daily_reflections: dailyReflectionsPayload,
         });
 
-        // 5. Invalidate previous user_days row for this user and date.
-        const { error: updateUserDaysError } = await supabase
-            .from("user_days")
-            .update({ is_valid: false })
-            .eq("user_id", userId)
-            .eq("log_date", reselectedDate)
-            .eq("is_valid", true);
+        console.log("Notes:");
+        Object.entries(notes).forEach(([actionId, note]) => {
+            console.log(`${actionId}: ${note}`);
+        });
 
-        if (updateUserDaysError) {
-            console.error("Error updating previous user_days entries:", updateUserDaysError);
-            return;
-        }
-
-        // 6. Insert a new row into user_days with the aggregated values.
-        const userDaysRow = {
-            user_id: userId,
-            log_date: reselectedDate,
-            num_engage_actions_total,
-            num_engage_actions_positive,
-            num_engage_actions_negative,
-            num_engage_actions_neutral,
-            num_avoid_actions_total,
-            num_avoid_actions_positive,
-            num_avoid_actions_negative,
-            num_categories_tracked,
-            actions_day_grade,
-            is_valid: true
-        };
-
-        const { error: insertUserDaysError } = await supabase
-            .from("user_days")
-            .insert(userDaysRow);
-
-        if (insertUserDaysError) {
-            console.error("Error inserting user_days row:", insertUserDaysError);
+        if (error) {
+            console.error("Error in RPC insert:", error);
         } else {
-            console.log("User_days row inserted successfully.");
             alert("Daily log and summary saved successfully!");
         }
     };
+
 
     // Group selected actions by category.
     const groupActionsByCategory = (actions: SelectedAction[]): Record<string, SelectedAction[]> => {
@@ -388,106 +366,145 @@ const DailyLog = ({ userId, selectedDate, onActionToggle }: DailyLogProps) => {
             <div className="flex-grow overflow-y-auto max-h-full">
                 <table className="min-w-full">
                     <tbody>
-                        {selectedActions.length === 0 ? (
-                            <tr>
-                                <td
-                                    className="px-4 py-2 text-gray-700 dark:text-gray-300"
-                                    colSpan={2}
-                                >
-                                    No selected actions.
-                                </td>
-                            </tr>
-                        ) : (
-                            sortedGroupedActions.map((group) => {
-                                // Check if any action in the group is marked done.
-                                const groupHasDone = group.actions.some(
-                                    (action: SelectedAction) => doneStatus[action.selected_action_id]
-                                );
-                                // Use the first action's intent for the group.
-                                const groupIntent = group.actions.length > 0 ? group.actions[0].intent : "engage";
-                                const groupIcon = groupHasDone
-                                    ? groupIntent === "engage" ? (
-                                        <CircleCheck className="text-blue-600" />
-                                    ) : (
-                                        <CircleX className="text-red-600" />
-                                    )
-                                    : null;
+                        {sortedGroupedActions.map((group) => {
+                            return (
+                                <Fragment key={group.category}>
+                                    {/* Category Header Row */}
+                                    <tr className="bg-gray-300 dark:bg-gray-700">
+                                        <td className="px-4 py-2 font-bold">{group.category}</td>
+                                        <td></td>
+                                        <td></td>
+                                    </tr>
 
-                                return (
-                                    <Fragment key={group.category}>
-                                        {/* Category Header Row */}
-                                        <tr className="bg-gray-300 dark:bg-gray-700">
-                                            <td className="px-4 py-2 font-bold">{group.category}</td>
-                                            <td></td>
-                                            {/* <td className="px-4 py-2 text-right">{groupIcon}</td> */}
-                                        </tr>
-                                        {group.actions.map((action) => {
-                                            const done = doneStatus[action.selected_action_id] || false;
-                                            return (
-                                                <tr
-                                                    key={action.selected_action_id}
-                                                    className="border-b border-gray-200 dark:border-gray-700"
-                                                >
-                                                    <td className="px-4 py-2 text-gray-700 dark:text-gray-300">
-                                                        {action.action_name}
-                                                        {action.intent === "engage" && !action.group_category && " *"}
-                                                    </td>
-                                                    <td className="px-4 py-2 text-center">
-                                                        <button
-                                                            onClick={() => handleToggle(action.selected_action_id)}
-                                                            className="relative group p-2 focus:outline-none"
-                                                        >
-                                                            {!done && (
-                                                                <>
-                                                                    <span className="block group-hover:hidden">
-                                                                        <Circle className="text-gray-400" />
-                                                                    </span>
-                                                                    <span className="hidden group-hover:block">
-                                                                        {action.intent === "engage" ? (
-                                                                            <CircleCheck className="text-green-300" />
-                                                                        ) : (
-                                                                            <CircleX className="text-red-300" />
-                                                                        )}
-                                                                    </span>
-                                                                </>
-                                                            )}
-                                                            {done && (
-                                                                <>
-                                                                    <span className="block group-hover:hidden">
-                                                                        {action.intent === "engage" ? (
-                                                                            <CircleCheck className="text-green-600" />
-                                                                        ) : (
-                                                                            <CircleX className="text-red-600" />
-                                                                        )}
-                                                                    </span>
-                                                                    <span className="hidden group-hover:block">
-                                                                        <Circle
-                                                                            className={
-                                                                                action.intent === "engage"
-                                                                                    ? "text-green-300"
-                                                                                    : "text-red-300"
-                                                                            }
-                                                                        />
-                                                                    </span>
-                                                                </>
-                                                            )}
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })}
-                                    </Fragment>
-                                );
-                            })
-                        )}
+                                    {/* So what is inside this map i want to make into a component */}
+                                    {group.actions.map((action: SelectedAction) => (
+                                        <DailyLogActionRow
+                                            key={action.selected_action_id}
+                                            action={action}
+                                            doneStatus={doneStatus}
+                                            setDoneStatus={setDoneStatus}
+                                            notes={notes}
+                                            setNotes={setNotes}
+                                        />
+                                    ))}
+                                </Fragment>
+                            );
+                        })}
                     </tbody>
                 </table>
             </div>
         </div>
     );
-
-
 };
+
+
+export interface DailyLogActionRowProps {
+    action: SelectedAction;
+    doneStatus: Record<number, boolean>;
+    setDoneStatus: React.Dispatch<React.SetStateAction<Record<number, boolean>>>;
+    notes: Record<number, string>;
+    setNotes: React.Dispatch<React.SetStateAction<Record<number, string>>>;
+}
+
+const DailyLogActionRow = ({
+    action,
+    doneStatus,
+    setDoneStatus,
+    notes,
+    setNotes,
+}: DailyLogActionRowProps) => {
+
+    // Local state to track note UI for each action
+    const [notesOpen, setNotesOpen] = useState<Record<number, boolean>>({});
+    // Determine whether the current action is marked as done.
+    const done = doneStatus[action.selected_action_id] || false;
+    // Determine whether the notes textbox for this action is open.
+    const isNotesOpen = notesOpen[action.selected_action_id] || false;
+
+    return (
+        <Fragment>
+            {/* Main Action Row: if notes are open, omit bottom border */}
+            <tr className={`${isNotesOpen ? "" : "border-b border-gray-200 dark:border-gray-700"}`}>
+                <td className="px-4 py-2 text-gray-700 dark:text-gray-300">
+                    {action.action_name || "N/A"}
+                    {action.intent === "engage" && !action.group_category && " *"}
+                </td>
+                <td className="px-4 py-2 text-center">
+                    <button
+                        onClick={() =>
+                            setDoneStatus((prev) => ({
+                                ...prev,
+                                [action.selected_action_id]: !prev[action.selected_action_id],
+                            }))
+                        }
+                        className="relative group p-2 focus:outline-none"
+                    >
+                        {!done ? (
+                            <>
+                                <span className="block group-hover:hidden">
+                                    <Circle className="text-gray-400" />
+                                </span>
+                                <span className="hidden group-hover:block">
+                                    {action.intent === "engage" ? (
+                                        <CircleCheck className="text-green-300" />
+                                    ) : (
+                                        <CircleX className="text-red-300" />
+                                    )}
+                                </span>
+                            </>
+                        ) : (
+                            <>
+                                <span className="block group-hover:hidden">
+                                    {action.intent === "engage" ? (
+                                        <CircleCheck className="text-green-600" />
+                                    ) : (
+                                        <CircleX className="text-red-600" />
+                                    )}
+                                </span>
+                                <span className="hidden group-hover:block">
+                                    <Circle className={action.intent === "engage" ? "text-green-300" : "text-red-300"} />
+                                </span>
+                            </>
+                        )}
+                    </button>
+                </td>
+                <td className="px-4 py-2 text-center">
+                    <button
+                        onClick={() =>
+                            setNotesOpen((prev) => ({
+                                ...prev,
+                                [action.selected_action_id]: !prev[action.selected_action_id],
+                            }))
+                        }
+                        className="bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-200 px-2 py-1 rounded"
+                    >
+                        {isNotesOpen ? <PencilOff /> : <Pencil />}
+                    </button>
+                </td>
+            </tr>
+            {/* Notes Row: Rendered if the notes textbox is open.
+              Add a top border so it visually connects to the main row. */}
+            {isNotesOpen && (
+                <tr>
+                    <td colSpan={3} className="px-4 py-2 border-b border-gray-200 dark:border-gray-700">
+                        <textarea
+                            value={notes[action.selected_action_id] || ""}
+                            onChange={(e) =>
+                                setNotes((prev) => ({
+                                    ...prev,
+                                    [action.selected_action_id]: e.target.value,
+                                }))
+                            }
+                            placeholder="Flag any notes here..."
+                            className="w-full p-2 border rounded transition-all duration-300 min-h-[3rem] resize-y"
+                        />
+                    </td>
+                </tr>
+            )}
+        </Fragment>
+    );
+};
+
 
 interface DailyLogModalProps {
     isOpen: boolean;
@@ -499,7 +516,7 @@ const DailyLogModal = ({ isOpen, onClose, children }: DailyLogModalProps) => {
     if (!isOpen) return null;
 
     return (
-        <div 
+        <div
             className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4"
             onClick={onClose}
         >
@@ -508,16 +525,10 @@ const DailyLogModal = ({ isOpen, onClose, children }: DailyLogModalProps) => {
                            max-h-[60vh] shadow-lg relative"
                 onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside
             >
-                <button
-                    className="absolute top-2 right-2 text-gray-500 hover:text-gray-700 dark:hover:text-white"
-                    onClick={onClose}
-                >
-                    ✖
-                </button>
                 {children}
             </div>
         </div>
     );
 };
 
-export { DailyLog, DailyLogModal }
+export { DailyLog, DailyLogModal };
