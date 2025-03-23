@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
-import { ActionsCalendarGrid } from "@/components/actions-calendar";
+import { ActionsCalendar } from "@/components/actions-calendar";
 import { ChartVisual } from "@/components/value-chart";
 
 const DashboardPage = () => {
@@ -71,20 +71,20 @@ const DashboardPage = () => {
             : `Edit Actions (${selectedActions.length})`}
         </button>
       </header>
-
       {/* Responsive Grid */}
       {/* On large screens, force a fixed row height (here 500px, adjust as needed) */}
       <div
         className="
           grid grid-cols-1 gap-8 
           md:grid-cols-2 md:grid-rows-1
-          lg:grid-cols-3 lg:grid-rows-1 lg:h-auto
+          lg:grid-cols-3 lg:grid-rows-2 lg:h-auto
         "
       >
         {/* Calendar Section */}
         <section
           className="
-            bg-gray-50 dark:bg-gray-800 p-4 rounded
+            border
+            p-4 rounded-lg
             min-w-[300px]
             lg:h-full overflow-auto
             md:row-start-1 md:col-start-1 
@@ -92,16 +92,27 @@ const DashboardPage = () => {
           "
         >
           <h2 className="text-xl font-semibold mb-4">Calendar</h2>
-          <ActionsCalendarGrid userId={userId} />
+          <ActionsCalendar userId={userId} />
         </section>
-
+        <section
+          className="
+            border
+            p-4 rounded-lg
+            min-w-[300px]
+            lg:h-full overflow-auto
+            md:row-start-1 md:col-start-1 
+            lg:col-span-2
+          "
+        >
+          <h2 className="text-xl font-semibold mb-4">Today's Breakdown</h2>
+          <p>Placeholder...</p>
+        </section>
         {/* Chart Visual Section */}
         <div
           className="
-            rounded 
             lg:h-full overflow-auto
-            md:col-span-2 md:row-start-1
-            lg:col-span-2 lg:row-start-1
+            md:col-span-2 md:row-start-2
+            lg:col-span-2 lg:row-start-2
           "
         >
           <ChartVisual userId={userId} />

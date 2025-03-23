@@ -80,7 +80,12 @@ const CalendarDay: React.FC<CalendarDayProps> = ({ date, logDateMap, filterActio
     const commonClasses = `w-8 h-8 rounded flex items-center justify-center 
       ${getColorForDate(date, filterAction)}
       ${isToday(date) ? "border-2 border-blue-800 dark:border-blue-200" : ""}
-      ${isPastOrToday ? "cursor-pointer hover:bg-gray-300 dark:hover:bg-blue-700" : "cursor-default opacity-50"}`;
+      ${isPastOrToday ? "cursor-pointer hover:bg-blue-300 dark:hover:bg-blue-700" : "cursor-default opacity-50"}`;
+
+    // const commonClasses = `w-8 h-8 rounded flex items-center justify-center 
+    //     ${isToday(date) ? "border-2 border-blue-800 dark:border-blue-200" : ""}
+    //     ${isPastOrToday ? "cursor-pointer hover:bg-blue-300 dark:hover:bg-blue-700" : "cursor-default opacity-50"}`;
+
 
     return isPastOrToday ? (
         //  Render a button if date is today or in the past
@@ -99,13 +104,117 @@ const CalendarDay: React.FC<CalendarDayProps> = ({ date, logDateMap, filterActio
     );
 };
 
+interface ActionsCalendarGridProps {
+    weeks: Date[][]; // weeks is an array of week arrays (each week: Date[])
+    logDateMap: Map<string, DayEntry>;
+    filterAction: string;
+    handleDateClick: (date: string) => void;
+}
+
+export const ActionsCalendarGrid: React.FC<ActionsCalendarGridProps> = ({
+    weeks,
+    logDateMap,
+    filterAction,
+    handleDateClick,
+}) => {
+    // We assume the grid is 7 columns and each cell is a fixed size (e.g. 32px width)
+    // Adjust cellSize to suit your design.
+    const cellSize = 32; // in pixels
+
+    // Returns a background color for a given date based on its month.
+    // You can adjust this array to suit your design.
+
+
+
+    return (
+        <div className="space-y-1">
+            {/** We want to display the latest week at the top, so we reverse the weeks */}
+            {weeks.slice().reverse().map((week, rowIndexReversed) => {
+                // Calculate the original row index from the reversed order.
+                const rowIndex = weeks.length - 1 - rowIndexReversed;
+                // return (
+                //     <div key={rowIndex} className="grid grid-cols-7">
+                //         {week.map((date, colIndex) => {
+                //             const currentMonth = date.getMonth();
+
+                //             const isEvenMonth = date.getMonth() % 2 === 0;
+                //             const bgClass = isEvenMonth ? "bg-white" : "bg-white";
+
+                //             // Determine if neighboring cells (within the grid) are in the same month.
+                //             const sameLeft =
+                //                 colIndex > 0 && week[colIndex - 1].getMonth() === currentMonth;
+                //             const sameRight =
+                //                 colIndex < week.length - 1 &&
+                //                 week[colIndex + 1].getMonth() === currentMonth;
+                //             const sameTop =
+                //                 rowIndex > 0 && weeks[rowIndex - 1][colIndex].getMonth() === currentMonth;
+                //             const sameBottom =
+                //                 rowIndex < weeks.length - 1 &&
+                //                 weeks[rowIndex + 1][colIndex].getMonth() === currentMonth;
+
+                //             const radiusClasses = [
+                //                 !sameLeft && !sameBottom && "rounded-tl-md",
+                //                 !sameRight && !sameBottom && "rounded-tr-md",
+                //                 !sameLeft && !sameTop && "rounded-bl-md",
+                //                 !sameRight && !sameTop && "rounded-br-md",
+                //             ].filter(Boolean).join(" ");
+
+                //             const marginClasses = [
+                //                 !sameBottom && "mt-[2px]",
+                //                 !sameTop && "mb-[2px]",
+                //                 !sameLeft && "ml-[2px]",
+                //                 !sameRight && "mr-[2px]",
+                //             ].filter(Boolean).join(" ");
+
+                //             return (
+                //                 <div
+                //                     key={date.toISOString()}
+                //                     className={`
+                //                       ${bgClass}
+                //                       transition-colors duration-200
+                //                       p-[2px]
+                //                       ${radiusClasses}
+                //                       ${marginClasses}
+                //                     `}
+                //                 >
+                //                     <CalendarDay
+                //                         date={date}
+                //                         logDateMap={logDateMap}
+                //                         filterAction={filterAction}
+                //                         handleDateClick={handleDateClick}
+                //                     />
+                //                 </div>
+                //             );
+                //         })}
+                //     </div>
+                // );
+
+                return (
+                    <div key={rowIndex} className="grid grid-cols-7">
+                        {week.map((date, colIndex) => {
+                            return (
+                                <CalendarDay
+                                    key={date.toISOString()} // Ensure uniqueness
+                                    date={date}
+                                    logDateMap={logDateMap}
+                                    filterAction={filterAction}
+                                    handleDateClick={handleDateClick}
+                                />
+                            );
+                        })}
+                    </div>
+                );
+            })}
+        </div>
+    );
+};
 
 // Props for the ActionsCalendar component
 interface ActionsCalendarProps {
     userId: string;
 }
 
-const ActionsCalendarGrid = ({ userId }: ActionsCalendarProps) => {
+const ActionsCalendar = ({ userId }: ActionsCalendarProps) => {
     const supabase = createClient();
 
     // State to store flattened log data from daily_actions_log.
@@ -211,19 +320,27 @@ const ActionsCalendarGrid = ({ userId }: ActionsCalendarProps) => {
     };
 
     // Compute the grid date range based on rawLogs, if available.
-    let computedStartDate: Date;
+    let firstLogDate: Date;
 
     if (rawLogs.length > 0) {
         // Sort the logs by date ascending.
         const sortedLogs = [...rawLogs].sort((a, b) => a.log_date.getTime() - b.log_date.getTime());
-        computedStartDate = sortedLogs[0].log_date;
+        firstLogDate = sortedLogs[0].log_date;
     } else {
         // If no logs, show a message instead of rendering the calendar.
         return <div className="p-4 text-center">Start Logging actions to view your history log</div>;
     }
 
-    // Adjust approxStart to the Monday of that week.
-    const startMonday = new Date(computedStartDate);
+
+    // Get the first day of the earliest log's month
+    const firstOfMonth = new Date(firstLogDate.getFullYear(), firstLogDate.getMonth(), 1);
+
+    // Find the Monday of the week that includes the 1st of that month
+    const startMonday = new Date(firstOfMonth);
+    const firstDayOfWeek = startMonday.getDay();
+    const diffToStartMonday = firstDayOfWeek === 0 ? -6 : 1 - firstDayOfWeek;
+    startMonday.setDate(startMonday.getDate() + diffToStartMonday);
+
     const dayOfWeek = startMonday.getDay();
     const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
     startMonday.setDate(startMonday.getDate() + diffToMonday);
@@ -288,23 +405,12 @@ const ActionsCalendarGrid = ({ userId }: ActionsCalendarProps) => {
                         </div>
                     ))}
                 </div>
-
-                {/* Week Rows: latest week at the top */}
-                <div className="space-y-1">
-                    {weeks.slice().reverse().map((week, weekIndex) => (
-                        <div key={weekIndex} className="grid grid-cols-7 gap-1">
-                            {week.map((date, dayIndex) => (
-                                <CalendarDay
-                                    key={date.toISOString()} // Ensure uniqueness
-                                    date={date}
-                                    logDateMap={logDateMap}
-                                    filterAction={filterAction}
-                                    handleDateClick={handleDateClick}
-                                />
-                            ))}
-                        </div>
-                    ))}
-                </div>
+                <ActionsCalendarGrid
+                    weeks={weeks}
+                    logDateMap={logDateMap}
+                    filterAction={filterAction}
+                    handleDateClick={handleDateClick}
+                />
             </div>
             {/* Daily Log Modal inside Calendar */}
             {selectedDate && new Date(selectedDate) <= today && (
@@ -316,4 +422,4 @@ const ActionsCalendarGrid = ({ userId }: ActionsCalendarProps) => {
     );
 };
 
-export { ActionsCalendarGrid };
+export { ActionsCalendar };
