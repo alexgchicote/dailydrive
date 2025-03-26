@@ -4,6 +4,7 @@ import { useState, useEffect, Fragment } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { Circle, CircleCheck, CircleX, Pencil, PencilOff } from "lucide-react";
 import { ReactNode } from "react";
+import { UserHistory } from "@/types";
 
 // Define a type for a selected action
 interface SelectedAction {
@@ -21,10 +22,9 @@ interface SelectedAction {
 
 interface DailyLogProps {
     userId: string;
-    selectedDate: string;
 }
 
-const DailyLog = ({ userId, selectedDate }: DailyLogProps) => {
+const DailyLog = ({ userId }: DailyLogProps) => {
     const supabase = createClient();
 
     // Local state for the selected actions and done toggles.
@@ -35,7 +35,7 @@ const DailyLog = ({ userId, selectedDate }: DailyLogProps) => {
 
     // Local state for selectedDate (assumed to be in "YYYY-MM-DD" format)
     const today = new Date().toISOString().split("T")[0];
-    const [reselectedDate, setReselectedDate] = useState<string>(selectedDate);
+    const [selectedDate, setSelectedDate] = useState<string>(today);
     const [loading, setLoading] = useState(true);
 
     // Compute the minimum selectable date (today minus 7 days).
@@ -49,23 +49,23 @@ const DailyLog = ({ userId, selectedDate }: DailyLogProps) => {
         const { data, error } = await supabase
             .from("selected_actions")
             .select(`
-                selected_action_id,
-                action_id,
-                added_to_tracking_on,
-                group_category,
-                actions_list (
-                action_name,
-                    intent,
-                    actions_categories (
-                        category_id,
-                        category_name
-                    )
-                ),
-                daily_actions_log (
-                    status,
-                    notes
+            selected_action_id,
+            action_id,
+            added_to_tracking_on,
+            group_category,
+            actions_list (
+            action_name,
+                intent,
+                actions_categories (
+                    category_id,
+                    category_name
                 )
-            `)
+            ),
+            daily_actions_log (
+                status,
+                notes
+            )
+        `)
             .eq("user_id", uid) // filters selected_actions by user
             .filter("added_to_tracking_on", "lte", selDate)
             .or(`removed_from_tracking_on.is.null,removed_from_tracking_on.gt.${selDate}`)
@@ -113,9 +113,9 @@ const DailyLog = ({ userId, selectedDate }: DailyLogProps) => {
     // On mount (or when userId or selectedDate changes), fetch the logs.
     useEffect(() => {
         if (userId) {
-            fetchSelectedActionsByDate(userId, reselectedDate);
+            fetchSelectedActionsByDate(userId, selectedDate);
         }
-    }, [userId, reselectedDate]);
+    }, [userId, selectedDate]);
 
 
 
@@ -268,7 +268,7 @@ const DailyLog = ({ userId, selectedDate }: DailyLogProps) => {
         // Call the RPC function with the encapsulated JSON payloads.
         const { error } = await supabase.rpc("upsert_user_log_payloads", {
             p_user_id: userId,
-            p_log_date: reselectedDate, // Ensure this is in "YYYY-MM-DD" format.
+            p_log_date: selectedDate, // Ensure this is in "YYYY-MM-DD" format.
             p_user_days: userDaysPayload,
             p_daily_logs: dailyLogsPayload,
         });
@@ -330,9 +330,9 @@ const DailyLog = ({ userId, selectedDate }: DailyLogProps) => {
                         <input
                             id="log-date"
                             type="date"
-                            value={reselectedDate}
+                            value={selectedDate}
                             onChange={(e) =>
-                                setReselectedDate(e.target.value ? e.target.value : selectedDate)
+                                setSelectedDate(e.target.value ? e.target.value : selectedDate)
                             }
                             min={minDate}  // e.g., today - 7 days
                             max={today}    // today's date; no future dates allowed
@@ -348,36 +348,33 @@ const DailyLog = ({ userId, selectedDate }: DailyLogProps) => {
                 </div>
             </div>
 
-            {/* Scrollable Table Container */}
             <div className="flex-grow overflow-y-auto max-h-full">
-                <table className="min-w-full">
-                    <tbody>
-                        {sortedGroupedActions.map((group) => {
-                            return (
-                                <Fragment key={group.category}>
-                                    {/* Category Header Row */}
-                                    <tr className="bg-gray-300 dark:bg-gray-700">
-                                        <td className="px-4 py-2 font-bold">{group.category}</td>
-                                        <td></td>
-                                        <td></td>
-                                    </tr>
-
-                                    {/* So what is inside this map i want to make into a component */}
-                                    {group.actions.map((action: SelectedAction) => (
-                                        <DailyLogActionRow
-                                            key={action.selected_action_id}
-                                            action={action}
-                                            doneStatus={doneStatus}
-                                            setDoneStatus={setDoneStatus}
-                                            notes={notes}
-                                            setNotes={setNotes}
-                                        />
-                                    ))}
-                                </Fragment>
-                            );
-                        })}
-                    </tbody>
-                </table>
+                {sortedGroupedActions.map((group) => (
+                    <div
+                        key={group.category}
+                        className="shadow-[0_4px_12px_theme(colors.gray.300)] dark:shadow-[4px_4px_4px_theme(colors.zinc.800)] mb-4"
+                    >
+                        {/* Category Header */}
+                        <div className="bg-gray-200 dark:bg-gray-700 px-4 py-2 rounded-t-lg">
+                            <span className="text-sm dark:text-gray-400">{group.category}</span>
+                        </div>
+                        {/* Table */}
+                        <table className="min-w-full table-fixed">
+                            <tbody>
+                                {group.actions.map((action) => (
+                                    <DailyLogActionRow
+                                        key={action.selected_action_id}
+                                        action={action}
+                                        doneStatus={doneStatus}
+                                        setDoneStatus={setDoneStatus}
+                                        notes={notes}
+                                        setNotes={setNotes}
+                                    />
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                ))}
             </div>
         </div>
     );
@@ -409,85 +406,99 @@ const DailyLogActionRow = ({
 
     return (
         <Fragment>
-            {/* Main Action Row: if notes are open, omit bottom border */}
-            <tr className={`${isNotesOpen ? "" : "border-b border-gray-200 dark:border-gray-700"}`}>
-                <td className="px-4 py-2 text-gray-700 dark:text-gray-300">
-                    {action.action_name || "N/A"}
-                    {action.intent === "engage" && !action.group_category && " *"}
-                </td>
-                <td className="px-4 py-2 text-center">
-                    <button
-                        onClick={() =>
-                            setDoneStatus((prev) => ({
-                                ...prev,
-                                [action.selected_action_id]: !prev[action.selected_action_id],
-                            }))
-                        }
-                        className="relative group p-2 focus:outline-none"
-                    >
-                        {!done ? (
-                            <>
-                                <span className="block group-hover:hidden">
-                                    <Circle className="text-gray-400" />
-                                </span>
-                                <span className="hidden group-hover:block">
-                                    {action.intent === "engage" ? (
-                                        <CircleCheck className="text-green-300" />
-                                    ) : (
-                                        <CircleX className="text-red-300" />
-                                    )}
-                                </span>
-                            </>
-                        ) : (
-                            <>
-                                <span className="block group-hover:hidden">
-                                    {action.intent === "engage" ? (
-                                        <CircleCheck className="text-green-600" />
-                                    ) : (
-                                        <CircleX className="text-red-600" />
-                                    )}
-                                </span>
-                                <span className="hidden group-hover:block">
-                                    <Circle className={action.intent === "engage" ? "text-green-300" : "text-red-300"} />
-                                </span>
-                            </>
-                        )}
-                    </button>
-                </td>
-                <td className="px-4 py-2 text-center">
-                    <button
-                        onClick={() =>
-                            setNotesOpen((prev) => ({
-                                ...prev,
-                                [action.selected_action_id]: !prev[action.selected_action_id],
-                            }))
-                        }
-                        className="bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-200 px-2 py-1 rounded"
-                    >
-                        {isNotesOpen ? <PencilOff /> : <Pencil />}
-                    </button>
-                </td>
-            </tr>
-            {/* Notes Row: Rendered if the notes textbox is open.
-              Add a top border so it visually connects to the main row. */}
-            {isNotesOpen && (
-                <tr>
-                    <td colSpan={3} className="px-4 py-2 border-b border-gray-200 dark:border-gray-700">
-                        <textarea
-                            value={notes[action.selected_action_id] || ""}
-                            onChange={(e) =>
-                                setNotes((prev) => ({
-                                    ...prev,
-                                    [action.selected_action_id]: e.target.value,
-                                }))
-                            }
-                            placeholder="Flag any notes here..."
-                            className="w-full p-2 border rounded transition-all duration-300 min-h-[3rem] resize-y"
-                        />
-                    </td>
-                </tr>
-            )}
-        </Fragment>
+      {/* Main Action Row: if notes are open, omit bottom border */}
+      <tr
+        className={`${
+          isNotesOpen ? "" : "border-b border-gray-200 dark:border-gray-700"
+        }`}
+      >
+        <td className="px-4 py-2 text-gray-700 dark:text-gray-300">
+          {action.action_name || "N/A"}
+          {action.intent === "engage" && !action.group_category && " *"}
+        </td>
+        {/* Combined cell for circle and pencil icons */}
+        <td className="px-4 py-2 text-right">
+          <div className="flex justify-end items-center space-x-2">
+            <button
+              onClick={() =>
+                setDoneStatus((prev) => ({
+                  ...prev,
+                  [action.selected_action_id]: !prev[action.selected_action_id],
+                }))
+              }
+              className="relative group p-2 focus:outline-none"
+            >
+              {!done ? (
+                <>
+                  <span className="block group-hover:hidden">
+                    <Circle className="text-gray-400" />
+                  </span>
+                  <span className="hidden group-hover:block">
+                    {action.intent === "engage" ? (
+                      <CircleCheck className="text-green-300" />
+                    ) : (
+                      <CircleX className="text-red-300" />
+                    )}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span className="block group-hover:hidden">
+                    {action.intent === "engage" ? (
+                      <CircleCheck className="text-green-600" />
+                    ) : (
+                      <CircleX className="text-red-600" />
+                    )}
+                  </span>
+                  <span className="hidden group-hover:block">
+                    <Circle
+                      className={
+                        action.intent === "engage"
+                          ? "text-green-300"
+                          : "text-red-300"
+                      }
+                    />
+                  </span>
+                </>
+              )}
+            </button>
+            <button
+              onClick={() =>
+                setNotesOpen((prev) => ({
+                  ...prev,
+                  [action.selected_action_id]:
+                    !prev[action.selected_action_id],
+                }))
+              }
+              className="bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-200 px-2 py-1 rounded focus:outline-none"
+            >
+              {isNotesOpen ? <PencilOff /> : <Pencil />}
+            </button>
+          </div>
+        </td>
+      </tr>
+      {/* Notes Row */}
+      {isNotesOpen && (
+        <tr>
+          <td
+            colSpan={2}
+            className="px-4 py-2 border-b border-gray-200 dark:border-gray-700"
+          >
+            <textarea
+              value={notes[action.selected_action_id] || ""}
+              onChange={(e) =>
+                setNotes((prev) => ({
+                  ...prev,
+                  [action.selected_action_id]: e.target.value,
+                }))
+              }
+              placeholder="Flag any notes here..."
+              className="w-full p-2 border rounded transition-all duration-300 min-h-[3rem] resize-y"
+            />
+          </td>
+        </tr>
+      )}
+    </Fragment>
     );
 };
 
@@ -507,7 +518,7 @@ const DailyLogModal = ({ isOpen, onClose, children }: DailyLogModalProps) => {
             onClick={onClose}
         >
             <div
-                className="bg-white dark:bg-gray-800 rounded-lg w-[90%] max-w-xl 
+                className="bg-white dark:bg-gray-900 rounded-lg w-[90%] max-w-xl 
                            max-h-[60vh] shadow-lg relative"
                 onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside
             >

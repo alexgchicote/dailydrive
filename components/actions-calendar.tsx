@@ -1,14 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { createClient } from "@/utils/supabase/client";
-import { DailyLog, DailyLogModal } from "@/components/daily-log";
+import { useEffect, useState, useMemo } from "react";
+import { UserHistory, } from "@/types";
 
 // Define a type for a log entry
 interface DayEntry {
-    log_date: Date; // CHANGED: now using Date instead of string
-    selected_action_id?: number;
+    log_date: Date;
     action_name: string;
+    selected_action_id?: number;
     outcome?: "positive" | "negative" | "neutral";
     actions_day_grade?: number | null; // Make optional if nullable
 }
@@ -18,12 +17,12 @@ const WEEK_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 interface CalendarDayProps {
     date: Date
-    logDateMap: Map<string, DayEntry>;
+    log: DayEntry | undefined;
     filterAction: string;
     handleDateClick: (date: string) => void;
 }
 
-const CalendarDay: React.FC<CalendarDayProps> = ({ date, logDateMap, filterAction, handleDateClick }) => {
+const CalendarDay: React.FC<CalendarDayProps> = ({ date, log, filterAction, handleDateClick }) => {
     const isPastOrToday = date <= new Date();
 
     const today = new Date();
@@ -39,18 +38,16 @@ const CalendarDay: React.FC<CalendarDayProps> = ({ date, logDateMap, filterActio
 
     // Get color for each date based on outcome.
     const getColorForDate = (date: Date, filterAction: string): string => {
-        const green = "bg-green-500";
-        const yellow = "bg-yellow-500";
-        const red = "bg-red-500";
+        const green = "bg-green-400 dark:bg-green-700";
+        const yellow = "bg-yellow-400 dark:bg-yellow-700";
+        const red = "bg-red-400 dark:bg-red-700";
         const gray = "bg-gray-300 dark:bg-gray-500";
+        const faintGray = "bg-gray-200 dark:bg-gray-700";
 
         if (date > today) {
-            return "bg-gray-200 dark:bg-gray-700";
+            return faintGray;
         }
 
-        // CHANGED: matching key as YYYY-MM-DD string
-        const key = date.toISOString().split("T")[0];
-        const log = logDateMap.get(key);
         if (!log) {
             return gray;
         }
@@ -77,15 +74,10 @@ const CalendarDay: React.FC<CalendarDayProps> = ({ date, logDateMap, filterActio
         }
     };
 
-    const commonClasses = `w-8 h-8 rounded flex items-center justify-center 
+    const commonClasses = `w-8 h-8 rounded-md flex items-center justify-center 
       ${getColorForDate(date, filterAction)}
       ${isToday(date) ? "border-2 border-blue-800 dark:border-blue-200" : ""}
       ${isPastOrToday ? "cursor-pointer hover:bg-blue-300 dark:hover:bg-blue-700" : "cursor-default opacity-50"}`;
-
-    // const commonClasses = `w-8 h-8 rounded flex items-center justify-center 
-    //     ${isToday(date) ? "border-2 border-blue-800 dark:border-blue-200" : ""}
-    //     ${isPastOrToday ? "cursor-pointer hover:bg-blue-300 dark:hover:bg-blue-700" : "cursor-default opacity-50"}`;
-
 
     return isPastOrToday ? (
         //  Render a button if date is today or in the past
@@ -103,6 +95,7 @@ const CalendarDay: React.FC<CalendarDayProps> = ({ date, logDateMap, filterActio
         </div>
     );
 };
+
 
 interface ActionsCalendarGridProps {
     weeks: Date[][]; // weeks is an array of week arrays (each week: Date[])
@@ -123,9 +116,6 @@ export const ActionsCalendarGrid: React.FC<ActionsCalendarGridProps> = ({
 
     // Returns a background color for a given date based on its month.
     // You can adjust this array to suit your design.
-
-
-
     return (
         <div className="space-y-1">
             {/** We want to display the latest week at the top, so we reverse the weeks */}
@@ -190,13 +180,13 @@ export const ActionsCalendarGrid: React.FC<ActionsCalendarGridProps> = ({
                 // );
 
                 return (
-                    <div key={rowIndex} className="grid grid-cols-7">
+                    <div key={rowIndex} className="grid grid-cols-7 gap-1">
                         {week.map((date, colIndex) => {
                             return (
                                 <CalendarDay
                                     key={date.toISOString()} // Ensure uniqueness
                                     date={date}
-                                    logDateMap={logDateMap}
+                                    log={logDateMap.get(date.toISOString().split("T")[0])}
                                     filterAction={filterAction}
                                     handleDateClick={handleDateClick}
                                 />
@@ -209,128 +199,80 @@ export const ActionsCalendarGrid: React.FC<ActionsCalendarGridProps> = ({
     );
 };
 
+
 // Props for the ActionsCalendar component
 interface ActionsCalendarProps {
-    userId: string;
+    userHistory: UserHistory[];
+    handleDateClick: (date: string) => void;
 }
+const ActionsCalendar: React.FC<ActionsCalendarProps> = ({
+    userHistory,
+    handleDateClick,
+}) => {
+    // Distinct action names for the dropdown.
+    const distinctActions: string[] = [
+        "All",
+        ...Array.from(
+            new Set(
+                userHistory.flatMap((day) =>
+                    day.logs.map((log) => log.action_name).filter(Boolean)
+                )
+            )
+        ),
+    ];
 
-const ActionsCalendar = ({ userId }: ActionsCalendarProps) => {
-    const supabase = createClient();
-
-    // State to store flattened log data from daily_actions_log.
-    const [rawLogs, setRawLogs] = useState<DayEntry[]>([]);
-    // User Days
-    const [userDays, setUserDays] = useState<DayEntry[]>([]);
     // Dropdown filter: selected action name.
     const [filterAction, setFilterAction] = useState<string>("All");
-    // Distinct action names for the dropdown.
-    const [distinctActions, setDistinctActions] = useState<string[]>([]);
 
-    // Modal State
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [selectedDate, setSelectedDate] = useState<string | null>(null);
-
-    // Filter logs based on selected action.
-    const filteredLogs = filterAction === "All" ? userDays : rawLogs.filter((log) => log.action_name === filterAction);
-
-    // Fetch logs from daily_actions_log.
-    const fetchLogs = async (uid: string) => {
-        console.log("Fetching action logs for user:", uid);
-        const { data, error } = await supabase
-            .from("daily_actions_log")
-            .select(`
-                log_id,
-                log_date,
-                selected_action_id,
-                status,
-                outcome,
-                selected_actions (
-                    actions_list (
-                        action_name,
-                        intent,
-                        actions_categories (
-                            category_id,
-                            category_name
-                        )
-                    )
-                )
-            `)
-            .eq("user_id", uid)
-
-        if (error) {
-            console.error("Error fetching action logs:", error);
-        } else {
-            console.log("Fetched actions log:", data);
-
-            // Flatten the logs.
-            const flatLogs: DayEntry[] = data.map((log: any) => ({
-                log_date: new Date(log.log_date), // CHANGED: using Date constructor
-                selected_action_id: log.selected_action_id,
-                action_name: log.selected_actions?.actions_list?.action_name || "Unknown",
-                outcome: log.outcome,
+    // Transform the grouped userHistory into a flat array of DayEntry objects.
+    // If filter is "All", we want one entry per day (using the aggregated KPI).
+    // Otherwise, we flatten the logs and only keep those matching the filter.
+    const flatEntries: DayEntry[] = useMemo(() => {
+        if (filterAction === "All") {
+            return userHistory.map((day) => ({
+                log_date: new Date(day.log_date),
+                // Here you could choose to display the day's aggregated KPI
+                // In this case, we're not displaying an individual action name
+                action_name: "All",
+                actions_day_grade: day.actions_day_grade,
             }));
-
-            console.log("Flat logs:", flatLogs);
-            setRawLogs(flatLogs);
-
-            // Derive distinct action names.
-            const actionNames = Array.from(new Set(flatLogs.map((log) => log.action_name).filter(Boolean)));
-            setDistinctActions(["All", ...actionNames]);
-        }
-    };
-
-    const fetchUserDays = async (uid: string) => {
-        console.log("Fetching user's days for user:", uid);
-
-        const { data, error } = await supabase
-            .from("user_days")
-            .select(`
-                log_date,
-                actions_day_grade
-            `)
-            .eq("user_id", uid)
-
-        if (error) {
-            console.error("Error fetching user's days:", error);
         } else {
-            console.log("Fetched user's days:", data);
-
-            setUserDays(
-                data.map((day: any) => ({
-                    log_date: new Date(day.log_date), // CHANGED: using Date constructor
-                    actions_day_grade: day.actions_day_grade,
-                    action_name: "All",
-                }))
+            // Flatten individual logs from all days that match the filter
+            return userHistory.flatMap((day) =>
+                day.logs
+                    .filter((log) => log.action_name === filterAction)
+                    .map((log) => ({
+                        log_date: new Date(day.log_date),
+                        selected_action_id: log.selected_action_id,
+                        action_name: log.action_name,
+                        outcome: log.outcome,
+                        // Optionally, if you want to include the day's aggregated KPI here:
+                        actions_day_grade: day.actions_day_grade,
+                    }))
             );
         }
-    };
+    }, [userHistory, filterAction]);
 
-    // useEffect to fetch logs when userId changes.
-    useEffect(() => {
-        if (userId) {
-            fetchLogs(userId);
-            fetchUserDays(userId);
-        }
-    }, [userId]);
-
-    // Function to open the modal and set selected date
-    const handleDateClick = (date: string) => {
-        setSelectedDate(date);
-        setIsModalOpen(true);
-    };
+    // Build a lookup map from date string (YYYY-MM-DD) to DayEntry.
+    const logDateMap = useMemo(() => {
+        const map = new Map<string, DayEntry>();
+        flatEntries.forEach((entry) => {
+            map.set(entry.log_date.toISOString().split("T")[0], entry);
+        });
+        return map;
+    }, [flatEntries]);
 
     // Compute the grid date range based on rawLogs, if available.
     let firstLogDate: Date;
 
-    if (rawLogs.length > 0) {
+    if (flatEntries.length > 0) {
         // Sort the logs by date ascending.
-        const sortedLogs = [...rawLogs].sort((a, b) => a.log_date.getTime() - b.log_date.getTime());
+        const sortedLogs = [...flatEntries].sort((a, b) => a.log_date.getTime() - b.log_date.getTime());
         firstLogDate = sortedLogs[0].log_date;
     } else {
         // If no logs, show a message instead of rendering the calendar.
         return <div className="p-4 text-center">Start Logging actions to view your history log</div>;
     }
-
 
     // Get the first day of the earliest log's month
     const firstOfMonth = new Date(firstLogDate.getFullYear(), firstLogDate.getMonth(), 1);
@@ -364,13 +306,6 @@ const ActionsCalendar = ({ userId }: ActionsCalendarProps) => {
         }
         weeks.push(week);
     }
-
-    // Build a map for quick lookup of logs by date.
-    // CHANGED: now using Date keys (converted to ISO strings for consistency)
-    const logDateMap = new Map<string, DayEntry>();
-    filteredLogs.forEach((log) => {
-        logDateMap.set(log.log_date.toISOString().split("T")[0], log);
-    });
 
     return (
         <div className="p-4">
@@ -412,12 +347,6 @@ const ActionsCalendar = ({ userId }: ActionsCalendarProps) => {
                     handleDateClick={handleDateClick}
                 />
             </div>
-            {/* Daily Log Modal inside Calendar */}
-            {selectedDate && new Date(selectedDate) <= today && (
-                <DailyLogModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
-                    <DailyLog userId={userId} selectedDate={selectedDate} />
-                </DailyLogModal>
-            )}
         </div>
     );
 };

@@ -4,7 +4,6 @@ import { TrendingUp } from "lucide-react";
 import { CartesianGrid, Line, LineChart, XAxis } from "recharts";
 import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
-import CustomTooltip from "@/components/ui/custom-tooltip"; // Adjust the path as needed
 
 import {
   Card,
