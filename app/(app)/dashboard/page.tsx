@@ -4,10 +4,11 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { ActionsCalendar } from "@/components/actions-calendar";
-import { ChartVisual } from "@/components/value-chart";
 import { DailyLog, DailyLogModal } from "@/components/daily-log";
 import DeepDive from "@/components/deep-dive";
 import { UserHistory } from "@/types";
+import JournalEditor from '@/components/journal-editor';
+import { JSONContent } from '@tiptap/react';
 
 const DashboardPage = () => {
   const router = useRouter();
@@ -16,44 +17,34 @@ const DashboardPage = () => {
   // Local state for basic user info.
   const [userId, setUserId] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
-  // State to store the flat list of selected actions 
   const [selectedActions, setSelectedActions] = useState<any[]>([]);
-
   const [userHistory, setUserHistory] = useState<UserHistory[]>([]);
-
   const [loading, setLoading] = useState(true);
 
-  // Modal State
+  // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  
+  // Journal date state - defaults to today
+  const [journalDate, setJournalDate] = useState<string>(
+    new Date().toISOString().split('T')[0]
+  );
 
-  // State for the deep dive date (default to yesterday)
-  const [deepdiveDate, setDeepdiveDate] = useState<string>(() => {
-    const d = new Date();
-    d.setDate(d.getDate() - 1);
-    return d.toISOString().split("T")[0];
-  });
-
-  // Function to fetch selected actions using the
+  // Functions for fetching user data
   const fetchNumSelectedActions = async (uid: string) => {
-    console.log("Fetching selected actions edit button:", uid);
     const { data, error } = await supabase
       .from("selected_actions")
-      .select(`
-        selected_action_id
-      `)
+      .select(`selected_action_id`)
       .eq("user_id", uid)
       .is("removed_from_tracking_on", null);
     if (error) {
-      console.error("Error fetching selected actions edit button:", error);
+      console.error("Error fetching selected actions:", error);
     } else {
-      console.log("Fetched selected actions edit button:", data);
       setSelectedActions(data || []);
     }
   };
 
   const fetchUserHisotry = async (uid: string) => {
-    console.log("Fetching selected actions edit button:", uid);
     const { data, error } = await supabase
       .from("user_days")
       .select(`
@@ -74,46 +65,40 @@ const DashboardPage = () => {
             )
           )
         )`)
-      .eq("user_id", uid)
-      if (error) {
-        console.error("Error fetching user history:", error);
-      } else {
-        console.log("Fetched user history:", data);
-        // Transform the data to flatten the daily_actions_log
-        const flattenedHistory: UserHistory[] = (data || []).map((day: any) => {
-          return {
-            log_date: day.log_date,
-            actions_day_grade: day.actions_day_grade,
-            logs: (day.daily_actions_log || []).map((log: any) => {
-              // Access the nested selected_actions → actions_list → actions_categories
-              const actionsList = log.selected_actions.actions_list;
-              const actionsCategories = actionsList.actions_categories;
-              return {
-                selected_action_id: log.selected_action_id,
-                status: log.status,
-                outcome: log.outcome,
-                notes: log.notes,
-                action_name: actionsList.action_name,
-                intent: actionsList.intent,
-                category_name: actionsCategories.category_name,
-              };
-            }),
-          };
-        });
-        setUserHistory(flattenedHistory);
-      }
-    };
-
+      .eq("user_id", uid);
+    if (error) {
+      console.error("Error fetching user history:", error);
+    } else {
+      const flattenedHistory: UserHistory[] = (data || []).map((day: any) => {
+        return {
+          log_date: day.log_date,
+          actions_day_grade: day.actions_day_grade,
+          logs: (day.daily_actions_log || []).map((log: any) => {
+            const actionsList = log.selected_actions.actions_list;
+            const actionsCategories = actionsList.actions_categories;
+            return {
+              selected_action_id: log.selected_action_id,
+              status: log.status,
+              outcome: log.outcome,
+              notes: log.notes,
+              action_name: actionsList.action_name,
+              intent: actionsList.intent,
+              category_name: actionsCategories.category_name,
+            };
+          }),
+        };
+      });
+      setUserHistory(flattenedHistory);
+    }
+  };
 
   // On mount: check session, set user info, and fetch selected actions.
   useEffect(() => {
     (async () => {
       const { data: { session }, error } = await supabase.auth.getSession();
-      console.log("Session response:", session, "Error:", error);
       if (error || !session) {
         router.push("/sign-in");
       } else {
-        console.log("User ID:", session.user.id);
         setUserEmail(session.user.email ?? null);
         setUserId(session.user.id);
         fetchNumSelectedActions(session.user.id);
@@ -126,9 +111,16 @@ const DashboardPage = () => {
   // Function to open the modal and set selected date
   const handleDateClick = (date: string) => {
     setSelectedDate(date);
-    setDeepdiveDate(date);
+    setJournalDate(date); // Also update the journal date when a date is clicked
   };
 
+  // Handle journal content saved
+  const handleJournalSaved = (content: JSONContent) => {
+    console.log('Journal saved successfully:', content);
+    // You could add additional logic here like notifications, etc.
+  };
+
+  // Conditionally render loading state without skipping hook calls.
   if (loading || !userId) return <div>Loading...</div>;
 
   return (
@@ -158,8 +150,8 @@ const DashboardPage = () => {
           </button>
         </div>
       </header>
+
       {/* Responsive Grid */}
-      {/* On large screens, force a fixed row height (here 500px, adjust as needed) */}
       <div
         className="
           grid grid-cols-1 gap-8 
@@ -179,11 +171,13 @@ const DashboardPage = () => {
           "
         >
           <h2 className="text-xl font-semibold mb-4">Calendar</h2>
-          <ActionsCalendar 
+          <ActionsCalendar
             userHistory={userHistory}
-            handleDateClick={handleDateClick} 
+            handleDateClick={handleDateClick}
           />
         </section>
+
+        {/* Deep Dive Section */}
         <section
           className="
             border rounded-lg border-zinc-800 dark:border-zinc-600
@@ -194,24 +188,53 @@ const DashboardPage = () => {
             lg:row-start-1 lg:col-start-2 lg:col-span-2 lg:h-full 
           "
         >
-          <h2 className="text-xl font-semibold mb-4">Today's Deep Dive</h2>
-          <DeepDive 
-            selectedDate={deepdiveDate}
+          <h2 className="text-xl font-semibold mb-4">
+            Deep dive for {selectedDate}
+          </h2>
+          <DeepDive
+            selectedDate={selectedDate}
             userHistory={userHistory}
           />
         </section>
 
-        {/* Chart Visual Section */}
+        {/* Journal Editor Section */}
         <div
           className="
-            lg:h-full overflow-auto
-            md:col-span-2 md:row-start-2
-            lg:col-span-2 lg:row-start-2
+            overflow-auto
+            border rounded-lg border-zinc-800 dark:border-zinc-600
+            p-4
+            min-w-[300px]
+            md:row-start-2 md:col-start-1 md:col-span-1
+            lg:row-start-2 lg:col-start-1 lg:col-span-2
           "
         >
-          <ChartVisual userId={userId} />
+          <div className="w-full max-w-3xl mx-auto">
+            <div className="flex flex-col gap-4 px-4">
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl font-semibold">Journal Entry for: </h2>
+                <div className="flex items-center gap-2">
+                  <input
+                    id="journal-date"
+                    type="date"
+                    value={journalDate}
+                    onChange={(e) => setJournalDate(e.target.value)}
+                    className="border border-gray-300 dark:border-gray-700 rounded px-2 py-1 text-sm bg-white dark:bg-gray-800"
+                  />
+                </div>
+              </div>
+              
+              {userId && journalDate && (
+                <JournalEditor 
+                  userId={userId} 
+                  date={journalDate}
+                  onSave={handleJournalSaved}
+                />
+              )}
+            </div>
+          </div>
         </div>
-        {/* Daily Log Modal inside Calendar */}
+
+        {/* Daily Log Modal */}
         {isModalOpen && (
           <DailyLogModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
             <DailyLog userId={userId} />

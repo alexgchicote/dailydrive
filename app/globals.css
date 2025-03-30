@@ -83,3 +83,12 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* styles/globals.css */
+.ProseMirror p.is-empty::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: theme('colors.gray.500'); /* adjust to gray.400 or gray.600 for contrast */
+  pointer-events: none;
+  height: 0;
+}

@@ -50,7 +50,6 @@ export function ChartVisual({ userId }: ChartProps) {
     console.log("Fetching KPIs for user:", uid);
 
     const { data, error } = await supabase.rpc("get_user_day_kpis", { uid });
-
     if (error) {
       console.error("Error fetching user's KPIs:", error);
     } else {

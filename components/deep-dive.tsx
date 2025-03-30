@@ -1,12 +1,11 @@
-// deep-dive.tsx
 "use client";
-
 import React from "react";
 import { Circle, CircleCheck, CircleX } from "lucide-react";
+import { createClient } from "@/utils/supabase/client";
 import { UserHistory } from "@/types";
 
 interface DeepDiveProps {
-    selectedDate: string; // Format "YYYY-MM-DD"
+    selectedDate: string | null; // Format "YYYY-MM-DD"
     userHistory: UserHistory[]; // All the fetched daily history records.
 }
 
@@ -42,10 +41,7 @@ const DeepDive: React.FC<DeepDiveProps> = ({ selectedDate, userHistory }) => {
 
     return (
         <div className="flex-1 overflow-y-auto space-y-6">
-            <h2 className="text-lg font-semibold mb-4">Daily Breakdown for {selectedDate}</h2>
             {Object.entries(groupedLogs).map(([category, actions]) => {
-
-
                 const sortedActions = [...actions].sort((a, b) => {
                     const outcomeA: Outcome = a.outcome as Outcome;
                     const outcomeB: Outcome = b.outcome as Outcome;
