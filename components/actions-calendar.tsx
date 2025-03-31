@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { UserHistory, } from "@/types";
 
 // Define a type for a log entry
@@ -23,9 +23,9 @@ interface CalendarDayProps {
 }
 
 const CalendarDay: React.FC<CalendarDayProps> = ({ date, log, filterAction, handleDateClick }) => {
-    const isPastOrToday = date <= new Date();
-
     const today = new Date();
+
+    const isPastOrToday = date <= today;
 
     const isToday = (date: Date) => {
         const today = new Date();
@@ -74,6 +74,14 @@ const CalendarDay: React.FC<CalendarDayProps> = ({ date, log, filterAction, hand
         }
     };
 
+    // Format date as YYYY-MM-DD using local date components, not UTC
+    const formatDateForClick = (date: Date): string => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
     const commonClasses = `w-8 h-8 rounded-md flex items-center justify-center 
       ${getColorForDate(date, filterAction)}
       ${isToday(date) ? "border-2 border-blue-800 dark:border-blue-200" : ""}
@@ -82,7 +90,7 @@ const CalendarDay: React.FC<CalendarDayProps> = ({ date, log, filterAction, hand
     return isPastOrToday ? (
         //  Render a button if date is today or in the past
         <button
-            onClick={() => handleDateClick(date.toISOString().split("T")[0])}
+            onClick={() => handleDateClick(formatDateForClick(date))}
             className={commonClasses}
             title={date.toLocaleDateString("en-GB")}
         >
@@ -104,89 +112,36 @@ interface ActionsCalendarGridProps {
     handleDateClick: (date: string) => void;
 }
 
+// Add this helper function to format dates consistently
+const formatDateKey = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
+// Then update the CalendarGrid component to use this function
 export const ActionsCalendarGrid: React.FC<ActionsCalendarGridProps> = ({
     weeks,
     logDateMap,
     filterAction,
     handleDateClick,
 }) => {
-    // We assume the grid is 7 columns and each cell is a fixed size (e.g. 32px width)
-    // Adjust cellSize to suit your design.
-    const cellSize = 32; // in pixels
-
-    // Returns a background color for a given date based on its month.
-    // You can adjust this array to suit your design.
     return (
         <div className="space-y-1">
-            {/** We want to display the latest week at the top, so we reverse the weeks */}
             {weeks.slice().reverse().map((week, rowIndexReversed) => {
-                // Calculate the original row index from the reversed order.
                 const rowIndex = weeks.length - 1 - rowIndexReversed;
-                // return (
-                //     <div key={rowIndex} className="grid grid-cols-7">
-                //         {week.map((date, colIndex) => {
-                //             const currentMonth = date.getMonth();
-
-                //             const isEvenMonth = date.getMonth() % 2 === 0;
-                //             const bgClass = isEvenMonth ? "bg-white" : "bg-white";
-
-                //             // Determine if neighboring cells (within the grid) are in the same month.
-                //             const sameLeft =
-                //                 colIndex > 0 && week[colIndex - 1].getMonth() === currentMonth;
-                //             const sameRight =
-                //                 colIndex < week.length - 1 &&
-                //                 week[colIndex + 1].getMonth() === currentMonth;
-                //             const sameTop =
-                //                 rowIndex > 0 && weeks[rowIndex - 1][colIndex].getMonth() === currentMonth;
-                //             const sameBottom =
-                //                 rowIndex < weeks.length - 1 &&
-                //                 weeks[rowIndex + 1][colIndex].getMonth() === currentMonth;
-
-                //             const radiusClasses = [
-                //                 !sameLeft && !sameBottom && "rounded-tl-md",
-                //                 !sameRight && !sameBottom && "rounded-tr-md",
-                //                 !sameLeft && !sameTop && "rounded-bl-md",
-                //                 !sameRight && !sameTop && "rounded-br-md",
-                //             ].filter(Boolean).join(" ");
-
-                //             const marginClasses = [
-                //                 !sameBottom && "mt-[2px]",
-                //                 !sameTop && "mb-[2px]",
-                //                 !sameLeft && "ml-[2px]",
-                //                 !sameRight && "mr-[2px]",
-                //             ].filter(Boolean).join(" ");
-
-                //             return (
-                //                 <div
-                //                     key={date.toISOString()}
-                //                     className={`
-                //                       ${bgClass}
-                //                       transition-colors duration-200
-                //                       p-[2px]
-                //                       ${radiusClasses}
-                //                       ${marginClasses}
-                //                     `}
-                //                 >
-                //                     <CalendarDay
-                //                         date={date}
-                //                         logDateMap={logDateMap}
-                //                         filterAction={filterAction}
-                //                         handleDateClick={handleDateClick}
-                //                     />
-                //                 </div>
-                //             );
-                //         })}
-                //     </div>
-                // );
 
                 return (
                     <div key={rowIndex} className="grid grid-cols-7 gap-1">
                         {week.map((date, colIndex) => {
+                            // Use the consistent date formatting when looking up logs
+                            const dateKey = formatDateKey(date);
                             return (
                                 <CalendarDay
-                                    key={date.toISOString()} // Ensure uniqueness
+                                    key={date.toISOString()}
                                     date={date}
-                                    log={logDateMap.get(date.toISOString().split("T")[0])}
+                                    log={logDateMap.get(dateKey)}
                                     filterAction={filterAction}
                                     handleDateClick={handleDateClick}
                                 />
@@ -198,7 +153,6 @@ export const ActionsCalendarGrid: React.FC<ActionsCalendarGridProps> = ({
         </div>
     );
 };
-
 
 // Props for the ActionsCalendar component
 interface ActionsCalendarProps {
@@ -254,10 +208,20 @@ const ActionsCalendar: React.FC<ActionsCalendarProps> = ({
     }, [userHistory, filterAction]);
 
     // Build a lookup map from date string (YYYY-MM-DD) to DayEntry.
+    // const logDateMap = useMemo(() => {
+    //     const map = new Map<string, DayEntry>();
+    //     flatEntries.forEach((entry) => {
+    //         map.set(entry.log_date.toISOString().split("T")[0], entry);
+    //     });
+    //     return map;
+    // }, [flatEntries]);
+
     const logDateMap = useMemo(() => {
         const map = new Map<string, DayEntry>();
         flatEntries.forEach((entry) => {
-            map.set(entry.log_date.toISOString().split("T")[0], entry);
+            // Use the consistent date formatting
+            const dateKey = formatDateKey(entry.log_date);
+            map.set(dateKey, entry);
         });
         return map;
     }, [flatEntries]);

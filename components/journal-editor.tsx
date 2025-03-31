@@ -1,12 +1,13 @@
-// components/JournalEditor.tsx
+// components/journal-editor.tsx
 import React, { useEffect, useState } from 'react';
 import { useEditor, EditorContent, BubbleMenu, JSONContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import { LabelMark } from './LabelMark';
+import { LabelMark } from '../extensions/label-mark';
 import { X } from 'lucide-react';
 import { TextSelection } from 'prosemirror-state';
 import { createClient } from '@/utils/supabase/client';
 import isEqual from 'lodash/isEqual';
+import Placeholder from '@tiptap/extension-placeholder';
 
 interface JournalEditorProps {
     userId: string;
@@ -21,10 +22,16 @@ const JournalEditor: React.FC<JournalEditorProps> = ({ userId, date, onSave }) =
     const [initialContent, setInitialContent] = useState<JSONContent | null>(null);
     const supabase = createClient();
 
+    // Then update your editor configuration:
     const editor = useEditor({
         extensions: [
-            StarterKit, 
+            StarterKit,
             LabelMark,
+            Placeholder.configure({
+                placeholder: 'Write your journal entry for today...',
+                // This will only apply the placeholder to the first node
+                emptyEditorClass: 'is-editor-empty',
+            }),
         ],
         content: '',
         onUpdate: ({ editor }) => {
@@ -32,9 +39,9 @@ const JournalEditor: React.FC<JournalEditorProps> = ({ userId, date, onSave }) =
                 setSavedStatus(null);
                 return;
             }
-            
+
             const currentContent = editor.getJSON();
-            
+
             if (initialContent) {
                 if (isEqual(currentContent, initialContent)) {
                     setSavedStatus('saved');
@@ -51,11 +58,11 @@ const JournalEditor: React.FC<JournalEditorProps> = ({ userId, date, onSave }) =
     useEffect(() => {
         const loadJournalEntry = async () => {
             if (!editor || !userId || !date) return;
-            
+
             try {
                 // First clear the editor content
                 editor.commands.clearContent();
-                
+
                 // Fetch existing content from Supabase
                 const { data, error } = await supabase
                     .from('user_daily_journals')
@@ -101,10 +108,10 @@ const JournalEditor: React.FC<JournalEditorProps> = ({ userId, date, onSave }) =
             if (!domSelection || domSelection.rangeCount === 0) return;
             const range = domSelection.getRangeAt(0);
             if (range.collapsed) return;
-            
+
             try {
                 const expandedRange = range.cloneRange();
-                
+
                 // Expand start until whitespace or beginning
                 if (expandedRange.startContainer.nodeType === Node.TEXT_NODE) {
                     while (
@@ -115,7 +122,7 @@ const JournalEditor: React.FC<JournalEditorProps> = ({ userId, date, onSave }) =
                         expandedRange.setStart(expandedRange.startContainer, expandedRange.startOffset - 1);
                     }
                 }
-                
+
                 // Expand end until whitespace or end
                 if (expandedRange.endContainer.nodeType === Node.TEXT_NODE) {
                     const textContent = expandedRange.endContainer.textContent || '';
@@ -126,7 +133,7 @@ const JournalEditor: React.FC<JournalEditorProps> = ({ userId, date, onSave }) =
                         expandedRange.setEnd(expandedRange.endContainer, expandedRange.endOffset + 1);
                     }
                 }
-                
+
                 // Update editor selection
                 const newFrom = editor.view.posAtDOM(expandedRange.startContainer, expandedRange.startOffset);
                 const newTo = editor.view.posAtDOM(expandedRange.endContainer, expandedRange.endOffset);
@@ -136,7 +143,7 @@ const JournalEditor: React.FC<JournalEditorProps> = ({ userId, date, onSave }) =
                 // If selection adjustment fails, keep the original selection
             }
         };
-        
+
         document.addEventListener('pointerup', handlePointerUp);
         return () => {
             document.removeEventListener('pointerup', handlePointerUp);
@@ -208,7 +215,7 @@ const JournalEditor: React.FC<JournalEditorProps> = ({ userId, date, onSave }) =
             if (!editor) return;
             const target = event.target as HTMLElement;
             const labelSpan = target.closest('.label-highlight') as HTMLElement;
-            
+
             // First, remove active class from all highlights
             document.querySelectorAll('.label-highlight').forEach((el) => {
                 const htmlEl = el as HTMLElement;
@@ -217,31 +224,31 @@ const JournalEditor: React.FC<JournalEditorProps> = ({ userId, date, onSave }) =
                     htmlEl.style.backgroundColor = htmlEl.style.backgroundColor.replace('0.3', '0.15');
                 }
             });
-            
+
             if (labelSpan) {
                 event.preventDefault();
                 event.stopPropagation();
-                
+
                 // Activate this label
                 labelSpan.classList.add('active');
                 const activeBg = labelSpan.getAttribute('data-active-bg');
                 if (activeBg) {
                     labelSpan.style.backgroundColor = activeBg;
                 }
-                
+
                 // Set selection in the editor model but don't show it visually
                 if (editor) {
                     // Get positions for the start and end of the labeled text
                     const from = editor.view.posAtDOM(labelSpan, 0);
                     const to = editor.view.posAtDOM(labelSpan, labelSpan.childNodes.length);
-                    
+
                     // Create a proper TextSelection and dispatch it to the view
                     editor.view.dispatch(
                         editor.state.tr.setSelection(
                             TextSelection.create(editor.state.doc, from, to)
                         )
                     );
-                    
+
                     // Add a class to the editor to hide text selection
                     document.querySelector('.ProseMirror')?.classList.add('hide-selection');
                 }
@@ -259,7 +266,7 @@ const JournalEditor: React.FC<JournalEditorProps> = ({ userId, date, onSave }) =
     if (!editor) return null;
 
     // Determine the active category (if the current selection is inside a label).
-    const activeCategory = editor.isActive('label') ? (editor.getAttributes('label') as {category?: string}).category : null;
+    const activeCategory = editor.isActive('label') ? (editor.getAttributes('label') as { category?: string }).category : null;
 
     return (
         <div>
@@ -277,8 +284,8 @@ const JournalEditor: React.FC<JournalEditorProps> = ({ userId, date, onSave }) =
                         <button
                             onClick={() => applyLabel('Habit')}
                             className={`px-2 py-1 rounded-md text-sm font-medium transition-colors flex items-center h-7 ${activeCategory === 'Habit'
-                                    ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300'
-                                    : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
+                                ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300'
+                                : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
                                 }`}
                             type="button"
                         >
@@ -287,8 +294,8 @@ const JournalEditor: React.FC<JournalEditorProps> = ({ userId, date, onSave }) =
                         <button
                             onClick={() => applyLabel('Goal')}
                             className={`px-2 py-1 rounded-md text-sm font-medium transition-colors flex items-center h-7 ${activeCategory === 'Goal'
-                                    ? 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300'
-                                    : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
+                                ? 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300'
+                                : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
                                 }`}
                             type="button"
                         >
@@ -297,8 +304,8 @@ const JournalEditor: React.FC<JournalEditorProps> = ({ userId, date, onSave }) =
                         <button
                             onClick={() => applyLabel('Milestone')}
                             className={`px-2 py-1 rounded-md text-sm font-medium transition-colors flex items-center h-7 ${activeCategory === 'Milestone'
-                                    ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300'
-                                    : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
+                                ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300'
+                                : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
                                 }`}
                             type="button"
                         >
@@ -315,20 +322,19 @@ const JournalEditor: React.FC<JournalEditorProps> = ({ userId, date, onSave }) =
                         )}
                     </div>
                 </BubbleMenu>
-                <EditorContent editor={editor} className="prose prose-sm dark:prose-invert p-4" />
+                <EditorContent editor={editor} className="p-4" />
             </div>
-            
+
             <div className="flex justify-between items-center">
-                <button 
+                <button
                     onClick={saveJournalEntry}
                     disabled={isSaving || savedStatus === 'saved' || (editor?.isEmpty && !hasJournalEntry)}
-                    className={`px-3 py-1.5 rounded text-sm font-medium ${
-                        isSaving 
-                            ? 'bg-gray-300 text-gray-600 dark:bg-gray-700 dark:text-gray-400 cursor-not-allowed'
-                            : savedStatus === 'saved' || (editor?.isEmpty && !hasJournalEntry)
-                                ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300 cursor-default'
-                                : 'bg-blue-600 text-white hover:bg-blue-500 dark:bg-blue-700 dark:hover:bg-blue-600'
-                    }`}
+                    className={`px-3 py-1.5 rounded text-sm font-medium ${isSaving
+                        ? 'bg-gray-300 text-gray-600 dark:bg-gray-700 dark:text-gray-400 cursor-not-allowed'
+                        : savedStatus === 'saved' || (editor?.isEmpty && !hasJournalEntry)
+                            ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300 cursor-default'
+                            : 'bg-blue-600 text-white hover:bg-blue-500 dark:bg-blue-700 dark:hover:bg-blue-600'
+                        }`}
                     type="button"
                 >
                     {isSaving ? 'Saving...' : savedStatus === 'saved' ? 'Saved' : 'Save'}

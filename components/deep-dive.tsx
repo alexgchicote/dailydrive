@@ -1,7 +1,6 @@
 "use client";
 import React from "react";
 import { Circle, CircleCheck, CircleX } from "lucide-react";
-import { createClient } from "@/utils/supabase/client";
 import { UserHistory } from "@/types";
 
 interface DeepDiveProps {
@@ -38,6 +37,8 @@ const DeepDive: React.FC<DeepDiveProps> = ({ selectedDate, userHistory }) => {
         groups[category].push(log);
         return groups;
     }, {} as Record<string, typeof dayHistory.logs>);
+
+    console.log("From Deep Dive: ", selectedDate);
 
     return (
         <div className="flex-1 overflow-y-auto space-y-6">

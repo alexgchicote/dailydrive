@@ -108,7 +108,7 @@ const DashboardPage = () => {
     })();
   }, [router]);
 
-  // Function to open the modal and set selected date
+  // Function to click on a day in a calendar
   const handleDateClick = (date: string) => {
     setSelectedDate(date);
     setJournalDate(date); // Also update the journal date when a date is clicked
