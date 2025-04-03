@@ -15,7 +15,11 @@ interface JournalEditorProps {
     onSave?: (content: JSONContent) => void;
 }
 
-const JournalEditor: React.FC<JournalEditorProps> = ({ userId, date, onSave }) => {
+export default function JournalEditor({ 
+    userId, 
+    date, 
+    onSave 
+}: JournalEditorProps) {
     const [isSaving, setIsSaving] = useState(false);
     const [savedStatus, setSavedStatus] = useState<'saved' | 'unsaved' | 'error' | null>(null);
     const [hasJournalEntry, setHasJournalEntry] = useState(false);
@@ -464,5 +468,3 @@ const JournalEditor: React.FC<JournalEditorProps> = ({ userId, date, onSave }) =
         </div>
     );
 };
-
-export default JournalEditor;

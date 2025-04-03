@@ -22,7 +22,12 @@ interface CalendarDayProps {
     handleDateClick: (date: string) => void;
 }
 
-const CalendarDay: React.FC<CalendarDayProps> = ({ date, log, filterAction, handleDateClick }) => {
+function CalendarDay({ 
+    date, 
+    log, 
+    filterAction, 
+    handleDateClick 
+}: CalendarDayProps) {
     const today = new Date();
 
     const isPastOrToday = date <= today;
@@ -121,14 +126,14 @@ const formatDateKey = (date: Date): string => {
 };
 
 // Then update the CalendarGrid component to use this function
-export const ActionsCalendarGrid: React.FC<ActionsCalendarGridProps> = ({
+function ActionsCalendarGrid({
     weeks,
     logDateMap,
     filterAction,
     handleDateClick,
-}) => {
+}: ActionsCalendarGridProps) {
     return (
-        <div className="space-y-1">
+        <div className="space-y-1 overflow-y-auto">
             {weeks.slice().reverse().map((week, rowIndexReversed) => {
                 const rowIndex = weeks.length - 1 - rowIndexReversed;
 
@@ -159,10 +164,10 @@ interface ActionsCalendarProps {
     userHistory: UserHistory[];
     handleDateClick: (date: string) => void;
 }
-const ActionsCalendar: React.FC<ActionsCalendarProps> = ({
+export default function ActionsCalendar({
     userHistory,
     handleDateClick,
-}) => {
+}: ActionsCalendarProps) {
     // Distinct action names for the dropdown.
     const distinctActions: string[] = [
         "All",
@@ -314,5 +319,3 @@ const ActionsCalendar: React.FC<ActionsCalendarProps> = ({
         </div>
     );
 };
-
-export { ActionsCalendar };

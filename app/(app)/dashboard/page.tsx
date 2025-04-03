@@ -3,12 +3,15 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
-import { ActionsCalendar } from "@/components/actions-calendar";
+import ActionsCalendar from "@/components/actions-calendar";
 import { DailyLog, DailyLogModal } from "@/components/daily-log";
-import DeepDive from "@/components/deep-dive";
-import { UserHistory } from "@/types";
+import DayActions from "@/components/day-actions";
+import { UserHistory, DayKpi } from "@/types";
 import JournalEditor from '@/components/journal-editor';
 import { JSONContent } from '@tiptap/react';
+import { ValueChart } from "@/components/value-chart";
+import DayScore from "@/components/day-score";
+import DeepDive from "@/components/deep-dive";
 
 const DashboardPage = () => {
   const router = useRouter();
@@ -24,7 +27,7 @@ const DashboardPage = () => {
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  
+
   // Journal date state - defaults to today
   const [journalDate, setJournalDate] = useState<string>(
     new Date().toISOString().split('T')[0]
@@ -92,6 +95,34 @@ const DashboardPage = () => {
     }
   };
 
+  // Load the Stock price kpi
+  const [kpi, setKpi] = useState<DayKpi[]>([]);
+
+  const fetchkpi = async (uid: string) => {
+    console.log("Fetching KPIs for user:", uid);
+
+    const { data, error } = await supabase.rpc("get_user_day_kpis", { uid });
+    if (error) {
+      console.error("Error fetching user's KPIs:", error);
+    } else {
+      console.log("Fetched user's KPIs:", data);
+
+      setKpi(
+        data.map((day: {
+          log_date: string;
+          cumulative_gain: number;
+          day_contribution: number;
+          day_grade: number;
+        }) => ({
+          log_date: new Date(day.log_date),
+          cumulative_gain: day.cumulative_gain,
+          day_contribution: day.day_contribution,
+          day_grade: day.day_grade,
+        }))
+      );
+    }
+  };
+
   // On mount: check session, set user info, and fetch selected actions.
   useEffect(() => {
     (async () => {
@@ -103,6 +134,7 @@ const DashboardPage = () => {
         setUserId(session.user.id);
         fetchNumSelectedActions(session.user.id);
         fetchUserHisotry(session.user.id);
+        fetchkpi(session.user.id); // delete and merge into user history
         setLoading(false);
       }
     })();
@@ -155,8 +187,9 @@ const DashboardPage = () => {
       <div
         className="
           grid grid-cols-1 gap-8 
-          md:grid-cols-2 md:grid-rows-[34rem_1fr]
-          lg:grid-cols-3 lg:grid-rows-[34rem_1fr]
+          md:grid-cols-2 md:grid-rows-[34rem_34rem_34rem]
+          lg:grid-cols-3 lg:grid-rows-[34rem_34rem]
+
         "
       >
         {/* Calendar Section */}
@@ -165,7 +198,7 @@ const DashboardPage = () => {
             border rounded-lg border-zinc-800 dark:border-zinc-600
             p-4
             min-w-[300px]
-            lg:h-full overflow-y-auto
+            lg:h-full
             md:row-start-1 md:col-start-1 md:col-span-1
             lg:col-span-1
           "
@@ -194,8 +227,20 @@ const DashboardPage = () => {
           <DeepDive
             selectedDate={selectedDate}
             userHistory={userHistory}
+            dayKpi={kpi}
           />
         </section>
+
+        {/* Chart Visual Section */}
+        <div
+          className="
+            lg:h-full overflow-auto
+            md:col-span-2 md:row-start-1
+            lg:col-span-2 lg:row-start-1
+          "
+        >
+
+        </div>
 
         {/* Journal Editor Section */}
         <div
@@ -222,10 +267,10 @@ const DashboardPage = () => {
                   />
                 </div>
               </div>
-              
+
               {userId && journalDate && (
-                <JournalEditor 
-                  userId={userId} 
+                <JournalEditor
+                  userId={userId}
                   date={journalDate}
                   onSave={handleJournalSaved}
                 />
@@ -233,7 +278,6 @@ const DashboardPage = () => {
             </div>
           </div>
         </div>
-
         {/* Daily Log Modal */}
         {isModalOpen && (
           <DailyLogModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>

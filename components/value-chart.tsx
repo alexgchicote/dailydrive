@@ -1,10 +1,9 @@
 "use client"
-
 import { TrendingUp } from "lucide-react";
 import { CartesianGrid, Line, LineChart, XAxis } from "recharts";
 import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
-
+import { DayKpi } from "@/types";
 import {
   Card,
   CardContent,
@@ -20,17 +19,10 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart"
 
-// Define a type for a log entry
-interface DayEntry {
-  log_date: Date;
-  cumulative_gain: number;
-  day_contribution: number;
-  day_grade: number;
-}
-
 // Props for the Chart component
 interface ChartProps {
-  userId: string;
+  kpi: DayKpi[];
+  selectedDate: string | null;
 }
 
 const chartConfig = {
@@ -40,93 +32,76 @@ const chartConfig = {
   },
 } satisfies ChartConfig
 
-export function ChartVisual({ userId }: ChartProps) {
-  const supabase = createClient();
-
-  // User Days
-  const [kpi, setKpi] = useState<DayEntry[]>([]);
-
-  const fetchkpi = async (uid: string) => {
-    console.log("Fetching KPIs for user:", uid);
-
-    const { data, error } = await supabase.rpc("get_user_day_kpis", { uid });
-    if (error) {
-      console.error("Error fetching user's KPIs:", error);
-    } else {
-      console.log("Fetched user's KPIs:", data);
-
-      setKpi(
-        data.map((day: { 
-          log_date: string; 
-          cumulative_gain: number;
-          day_contribution: number;
-          day_grade: number;
-         }) => ({
-          log_date: new Date(day.log_date),
-          cumulative_gain: day.cumulative_gain,
-          day_contribution: day.day_contribution,
-          day_grade: day.day_grade,
-        }))
+export function ValueChart({ kpi, selectedDate }: ChartProps) {
+  // Function to render dots only for the selected date
+  const renderDot = (props: any) => {
+    const { cx, cy, payload, index } = props;
+    
+    // Skip if no selected date
+    if (!selectedDate) {
+      return <circle key={`dot-${index}`} cx={cx} cy={cy} r={0} />;
+    }
+    
+    // Convert both to ISO date strings for comparison
+    // log_date is a Date object, selectedDate is a string
+    const payloadDateStr = payload.log_date instanceof Date 
+      ? payload.log_date.toISOString().split('T')[0] 
+      : String(payload.log_date);
+    
+    // Compare the dates
+    if (payloadDateStr === selectedDate) {
+      return (
+        <circle 
+          key={`dot-${index}`}
+          cx={cx} 
+          cy={cy} 
+          r={4} 
+          fill="var(--color-desktop)" 
+          stroke="white" 
+          strokeWidth={2} 
+        />
       );
     }
+    
+    // Return an empty/invisible dot for other points
+    return <circle key={`dot-${index}`} cx={cx} cy={cy} r={0} />;
   };
 
-  // useEffect to fetch logs when userId changes.
-  useEffect(() => {
-    if (userId) {
-      fetchkpi(userId);
-    }
-  }, [userId]);
-
-
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Action Value</CardTitle>
-        <CardDescription>PLACEHOLDER: January - June 2024</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <ChartContainer config={chartConfig}>
-          <LineChart
-            accessibilityLayer
-            data={kpi}
-            margin={{
-              left: 12,
-              right: 12,
-            }}
-          >
-            <CartesianGrid vertical={false} />
-            <XAxis
-              dataKey="log_date"
-              tickLine={false}
-              axisLine={false}
-              tickMargin={8}
-              tickFormatter={(value) =>
-                new Date(value).toLocaleDateString("en-GB", { month: "short", day: "numeric" })
-              }
-            />
-            <ChartTooltip
-              cursor={false}
-              content={<ChartTooltipContent hideLabel/>}
-            />
-            <Line
-              dataKey="cumulative_gain"
-              type="linear"
-              stroke="var(--color-desktop)"
-              strokeWidth={2}
-              dot={false}
-            />
-          </LineChart>
-        </ChartContainer>
-      </CardContent>
-      <CardFooter className="flex-col items-start gap-2 text-sm">
-        <div className="flex gap-2 font-medium leading-none">
-          Trending up by 5.2% this month <TrendingUp className="h-4 w-4" />
-        </div>
-        <div className="leading-none text-muted-foreground">
-          Showing total visitors for the last 6 months
-        </div>
-      </CardFooter>
-    </Card>
+    <CardContent>
+      <ChartContainer config={chartConfig}>
+        <LineChart
+          accessibilityLayer
+          data={kpi}
+          margin={{
+            left: 12,
+            right: 12,
+          }}
+        >
+          <CartesianGrid vertical={false} />
+          <XAxis
+            dataKey="log_date"
+            tickLine={false}
+            axisLine={false}
+            tickMargin={8}
+            tickFormatter={(value) =>
+              new Date(value).toLocaleDateString("en-GB", { month: "short", day: "numeric" })
+            }
+          />
+          <ChartTooltip
+            cursor={false}
+            content={<ChartTooltipContent hideLabel/>}
+          />
+          <Line
+            dataKey="cumulative_gain"
+            type="linear"
+            stroke="var(--color-desktop)"
+            strokeWidth={2}
+            dot={selectedDate ? renderDot : false}
+            activeDot={{ r: 4, fill: "var(--color-desktop)", stroke: "white", strokeWidth: 2 }}
+          />
+        </LineChart>
+      </ChartContainer>
+    </CardContent>
   )
 }

@@ -24,7 +24,7 @@ interface DailyLogProps {
     userId: string;
 }
 
-const DailyLog = ({ userId }: DailyLogProps) => {
+export function DailyLog({ userId }: DailyLogProps) {
     const supabase = createClient();
 
     // Local state for the selected actions and done toggles.
@@ -528,4 +528,4 @@ const DailyLogModal = ({ isOpen, onClose, children }: DailyLogModalProps) => {
     );
 };
 
-export { DailyLog, DailyLogModal };
+export { DailyLogModal };
