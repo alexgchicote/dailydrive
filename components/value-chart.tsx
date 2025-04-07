@@ -1,6 +1,6 @@
 "use client"
 import { TrendingUp } from "lucide-react";
-import { CartesianGrid, Line, LineChart, XAxis } from "recharts";
+import { CartesianGrid, Line, LineChart, XAxis, ResponsiveContainer } from "recharts";
 import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { DayKpi } from "@/types";
@@ -23,6 +23,7 @@ import {
 interface ChartProps {
   kpi: DayKpi[];
   selectedDate: string | null;
+  dayScore: number;
 }
 
 const chartConfig = {
@@ -32,7 +33,19 @@ const chartConfig = {
   },
 } satisfies ChartConfig
 
-export function ValueChart({ kpi, selectedDate }: ChartProps) {
+export function ValueChart({ kpi, selectedDate, dayScore }: ChartProps) {
+
+  // Determine score color based on the value
+  const getScoreColor = (score: number) => {
+    if (score === 1) return { light: "#4ade80", dark: "#15803d" }; // green-400/700
+    if (score > 0.6) return { light: "#facc15", dark: "#a16207" }; // yellow-400/700
+    return { light: "#f87171", dark: "#b91c1c" }; // red-400/700
+};
+
+  // Get the appropriate color for the dot based on dayScore
+  const dotColor = getScoreColor(dayScore);
+
+
   // Function to render dots only for the selected date
   const renderDot = (props: any) => {
     const { cx, cy, payload, index } = props;
@@ -56,8 +69,7 @@ export function ValueChart({ kpi, selectedDate }: ChartProps) {
           cx={cx} 
           cy={cy} 
           r={4} 
-          fill="var(--color-desktop)" 
-          stroke="white" 
+          fill={dotColor.dark}
           strokeWidth={2} 
         />
       );
@@ -68,15 +80,19 @@ export function ValueChart({ kpi, selectedDate }: ChartProps) {
   };
 
   return (
-    <CardContent>
-      <ChartContainer config={chartConfig}>
+    <ResponsiveContainer width="100%" height="100%">
+      <ChartContainer config={chartConfig} className="h-full w-full">
         <LineChart
           accessibilityLayer
           data={kpi}
           margin={{
+            top: 5,
             left: 12,
             right: 12,
+            bottom: 5
           }}
+          width={500}
+          height={100}
         >
           <CartesianGrid vertical={false} />
           <XAxis
@@ -98,10 +114,15 @@ export function ValueChart({ kpi, selectedDate }: ChartProps) {
             stroke="var(--color-desktop)"
             strokeWidth={2}
             dot={selectedDate ? renderDot : false}
-            activeDot={{ r: 4, fill: "var(--color-desktop)", stroke: "white", strokeWidth: 2 }}
+            activeDot={{ 
+              r: 4, 
+              fill: dotColor.light, 
+              stroke: "white", 
+              strokeWidth: 2 
+            }}
           />
         </LineChart>
       </ChartContainer>
-    </CardContent>
+    </ResponsiveContainer>
   )
 }

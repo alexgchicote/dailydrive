@@ -20,13 +20,15 @@ interface CalendarDayProps {
     log: DayEntry | undefined;
     filterAction: string;
     handleDateClick: (date: string) => void;
+    isActive: boolean; // Add this prop to track active state
 }
 
 function CalendarDay({ 
     date, 
     log, 
     filterAction, 
-    handleDateClick 
+    handleDateClick,
+    isActive
 }: CalendarDayProps) {
     const today = new Date();
 
@@ -90,6 +92,7 @@ function CalendarDay({
     const commonClasses = `w-8 h-8 rounded-md flex items-center justify-center 
       ${getColorForDate(date, filterAction)}
       ${isToday(date) ? "border-2 border-blue-800 dark:border-blue-200" : ""}
+      ${isActive ? "border-4 border-gray-600 dark:border-gray-400" : ""}
       ${isPastOrToday ? "cursor-pointer hover:bg-blue-300 dark:hover:bg-blue-700" : "cursor-default opacity-50"}`;
 
     return isPastOrToday ? (
@@ -115,6 +118,7 @@ interface ActionsCalendarGridProps {
     logDateMap: Map<string, DayEntry>;
     filterAction: string;
     handleDateClick: (date: string) => void;
+    activeDate: string | null;
 }
 
 // Add this helper function to format dates consistently
@@ -131,9 +135,10 @@ function ActionsCalendarGrid({
     logDateMap,
     filterAction,
     handleDateClick,
+    activeDate,
 }: ActionsCalendarGridProps) {
     return (
-        <div className="space-y-1 overflow-y-auto">
+        <div className="space-y-1 max-h-[20rem] overflow-y-auto">
             {weeks.slice().reverse().map((week, rowIndexReversed) => {
                 const rowIndex = weeks.length - 1 - rowIndexReversed;
 
@@ -142,6 +147,7 @@ function ActionsCalendarGrid({
                         {week.map((date, colIndex) => {
                             // Use the consistent date formatting when looking up logs
                             const dateKey = formatDateKey(date);
+                            const isActive = dateKey === activeDate;
                             return (
                                 <CalendarDay
                                     key={date.toISOString()}
@@ -149,6 +155,7 @@ function ActionsCalendarGrid({
                                     log={logDateMap.get(dateKey)}
                                     filterAction={filterAction}
                                     handleDateClick={handleDateClick}
+                                    isActive={isActive}
                                 />
                             );
                         })}
@@ -182,6 +189,15 @@ export default function ActionsCalendar({
 
     // Dropdown filter: selected action name.
     const [filterAction, setFilterAction] = useState<string>("All");
+    
+    // Track the active date
+    const [activeDate, setActiveDate] = useState<string | null>(null);
+
+    // Custom handleDateClick to track active date
+    const handleDateSelection = (date: string) => {
+        setActiveDate(date);
+        handleDateClick(date);
+    };
 
     // Transform the grouped userHistory into a flat array of DayEntry objects.
     // If filter is "All", we want one entry per day (using the aggregated KPI).
@@ -211,15 +227,6 @@ export default function ActionsCalendar({
             );
         }
     }, [userHistory, filterAction]);
-
-    // Build a lookup map from date string (YYYY-MM-DD) to DayEntry.
-    // const logDateMap = useMemo(() => {
-    //     const map = new Map<string, DayEntry>();
-    //     flatEntries.forEach((entry) => {
-    //         map.set(entry.log_date.toISOString().split("T")[0], entry);
-    //     });
-    //     return map;
-    // }, [flatEntries]);
 
     const logDateMap = useMemo(() => {
         const map = new Map<string, DayEntry>();
@@ -277,7 +284,7 @@ export default function ActionsCalendar({
     }
 
     return (
-        <div className="p-4">
+        <div className="p-4 h-full flex flex-col">
             {/* Dropdown for filtering by action */}
             <div className="mb-4">
                 <label htmlFor="action-filter" className="mr-2 text-sm text-gray-900 dark:text-gray-100">
@@ -297,7 +304,7 @@ export default function ActionsCalendar({
                 </select>
             </div>
 
-            <div>
+            <div className="flex-1 overflow-hidden flex flex-col">
                 {/* Header Row for Weekday Labels */}
                 <div className="grid grid-cols-7 gap-1 mb-2">
                     {WEEK_DAYS.map((day, index) => (
@@ -313,7 +320,8 @@ export default function ActionsCalendar({
                     weeks={weeks}
                     logDateMap={logDateMap}
                     filterAction={filterAction}
-                    handleDateClick={handleDateClick}
+                    handleDateClick={handleDateSelection}
+                    activeDate={activeDate}
                 />
             </div>
         </div>

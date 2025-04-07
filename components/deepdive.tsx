@@ -4,15 +4,15 @@ import { UserHistory, DayKpi } from "@/types";
 import DayActions from "./day-actions";
 import DayScore from "./day-score";
 import { ValueChart } from "./value-chart";
-import { Card } from "./ui/card";
+import { CardContent } from "./ui/card";
 
-interface DeepDiveProps {
+interface DeepdiveProps {
     selectedDate: string | null;
     userHistory: UserHistory[];
     dayKpi: DayKpi[]; // this should be merged into user History
 }
 
-export function DeepDive({ selectedDate, userHistory, dayKpi }: DeepDiveProps) {
+export function Deepdive({ selectedDate, userHistory, dayKpi }: DeepdiveProps) {
     // Find the history record that matches the selected date.
     const dayInfo = userHistory.find((day) => day.log_date === selectedDate);
 
@@ -31,18 +31,13 @@ export function DeepDive({ selectedDate, userHistory, dayKpi }: DeepDiveProps) {
     const totalActions = positiveActions + negativeActions;
 
     return (
-        <Card className="flex flex-col h-full">
-            {/* Top row with KPIs - fixed height */}
-            <div className="flex items-center p-4 border-b">
-                {/* Day Score - smaller and compact */}
-                <div className="w-1/3">
-                    <div className="transform scale-75 origin-left"> {/* Scale down the component */}
-                        <DayScore dayScore={dayScore} />
-                    </div>
+        <CardContent className="h-full flex flex-col overflow-hidden">
+            <div className="flex-none grid grid-cols-2 border-b h-[5rem]">
+                <div className="flex items-center justify-center h-[5rem]">
+                    <DayScore dayScore={dayScore} />
                 </div>
-
-                {/* Actions completed - emphasize numbers */}
-                <div className="w-2/3 flex flex-col items-center justify-center">
+                {/* Second column - Actions Completed */}
+                <div className="flex flex-col items-center justify-center h-full">
                     <div className="text-3xl font-bold">
                         {positiveActions}/{totalActions}
                     </div>
@@ -52,17 +47,24 @@ export function DeepDive({ selectedDate, userHistory, dayKpi }: DeepDiveProps) {
                 </div>
             </div>
 
-            {/* Middle row - Value chart with fixed height */}
-            <div className="p-4 border-b h-48">
-                <ValueChart kpi={dayKpi} selectedDate={selectedDate} />
+            {/* Row 2: ValueChart */}
+            <div className="flex-none border-b py-4 h-40">
+                <ValueChart kpi={dayKpi} selectedDate={selectedDate} dayScore={dayScore} />
             </div>
 
-            {/* Bottom row - DayActions with flexible height and scrolling */}
-            <div className="flex-1 overflow-y-auto">
-                <DayActions dayActions={dayActions} />
+            {/* Row 3: DayActions (scrollable) */}
+            <div className="flex-1 min-h-0 overflow-y-auto p-4">
+                {dayActions.length > 0 ? (
+                    <DayActions dayActions={dayActions} />
+                ) : (
+                    <div className="p-4 text-center text-gray-500">
+                        No actions logged for this date
+                    </div>
+                )}
             </div>
-        </Card>
-    );
+        </CardContent>
+
+    )
 };
 
-export default DeepDive;
+export default Deepdive;

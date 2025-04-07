@@ -1,6 +1,6 @@
 "use client"
 import { TrendingUp } from "lucide-react"
-import { Label, PolarRadiusAxis, RadialBar, RadialBarChart } from "recharts"
+import { Label, PolarRadiusAxis, RadialBar, RadialBarChart, ResponsiveContainer } from "recharts"
 import {
     Card,
     CardContent,
@@ -73,59 +73,61 @@ export function DayScore({ dayScore }: DayScoreProps) {
     };
 
     return (
-        <ChartContainer
-            config={chartConfig}
-            className="mx-auto aspect-square w-full max-w-[250px]"
-        >
-            <RadialBarChart
-                data={chartData}
-                endAngle={180}
-                innerRadius={80}
-                outerRadius={130}
+        <ResponsiveContainer width="100%" height="100%">
+            <ChartContainer
+                config={chartConfig}
+                className="h-full w-full"
             >
-                <PolarRadiusAxis tick={false} tickLine={false} axisLine={false}>
-                    <Label
-                        content={({ viewBox }) => {
-                            if (viewBox && "cx" in viewBox && "cy" in viewBox) {
-                                return (
-                                    <text x={viewBox.cx} y={viewBox.cy} textAnchor="middle">
-                                        <tspan
-                                            x={viewBox.cx}
-                                            y={(viewBox.cy || 0) - 16}
-                                            className="fill-foreground text-2xl font-bold"
-                                        >
-                                            {(chartData[0].score * 100).toFixed(0)}%
-                                        </tspan>
-                                        <tspan
-                                            x={viewBox.cx}
-                                            y={(viewBox.cy || 0) + 4}
-                                            className="fill-muted-foreground"
-                                        >
-                                            Score
-                                        </tspan>
-                                    </text>
-                                )
-                            }
-                            return null;
-                        }}
+                <RadialBarChart
+                    data={chartData}
+                    startAngle={0}
+                    endAngle={180}
+                    innerRadius={40}
+                    outerRadius={100}
+                    barSize={12}
+                    cx="50%"
+                    cy="77%"
+                >
+                    <PolarRadiusAxis tick={false} tickLine={false} axisLine={false}>
+                        <Label
+                            content={({ viewBox }) => {
+                                if (viewBox && "cx" in viewBox && "cy" in viewBox) {
+                                    return (
+                                        <text x={viewBox.cx} y={viewBox.cy} textAnchor="middle" dominantBaseline="middle">
+                                            <tspan
+                                                x={viewBox.cx}
+                                                y={(viewBox.cy || 0) - 8}
+                                                className="fill-foreground text-lg font-bold"
+                                            >
+                                                {(chartData[0].score * 100).toFixed(0)}%
+                                            </tspan>
+                                        </text>
+                                    );
+                                }
+                                return null;
+                            }}
+                        />
+                    </PolarRadiusAxis>
+
+                    <RadialBar
+                        dataKey="scoreFill"
+                        fill={currentGrayColor}
+                        stackId="a"
+                        cornerRadius={5}
+                        className="opacity-0"
+                        background
                     />
-                </PolarRadiusAxis>
-                <RadialBar
-                    dataKey="scoreFill"
-                    fill={currentGrayColor}
-                    stackId="a"
-                    cornerRadius={5}
-                    className="stroke-transparent stroke-2 opacity-60"
-                />
-                <RadialBar
-                    dataKey="score"
-                    stackId="a"
-                    cornerRadius={5}
-                    fill={currentScoreColor}
-                    className="stroke-transparent stroke-2"
-                />
-            </RadialBarChart>
-        </ChartContainer>
+                    <RadialBar
+                        dataKey="score"
+                        stackId="a"
+                        cornerRadius={5}
+                        fill={currentScoreColor}
+                        className="stroke-transparent stroke-2"
+                        background
+                    />
+                </RadialBarChart>
+            </ChartContainer>
+        </ResponsiveContainer>
     )
 }
 

@@ -6,12 +6,11 @@ import { createClient } from "@/utils/supabase/client";
 import ActionsCalendar from "@/components/actions-calendar";
 import { DailyLog, DailyLogModal } from "@/components/daily-log";
 import DayActions from "@/components/day-actions";
+import DayActionsDepth from "@/components/day-action-depth";
 import { UserHistory, DayKpi } from "@/types";
 import JournalEditor from '@/components/journal-editor';
 import { JSONContent } from '@tiptap/react';
-import { ValueChart } from "@/components/value-chart";
-import DayScore from "@/components/day-score";
-import DeepDive from "@/components/deep-dive";
+import Deepdive from "@/components/deepdive";
 
 const DashboardPage = () => {
   const router = useRouter();
@@ -26,7 +25,7 @@ const DashboardPage = () => {
 
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split("T")[0]);
 
   // Journal date state - defaults to today
   const [journalDate, setJournalDate] = useState<string>(
@@ -155,6 +154,24 @@ const DashboardPage = () => {
   // Conditionally render loading state without skipping hook calls.
   if (loading || !userId) return <div>Loading...</div>;
 
+  const formatDateHeader = (dateString: string) => {
+    const date = new Date(dateString);
+    // Get weekday name
+    const weekday = date.toLocaleDateString('en-US', { weekday: 'long' });
+    // Get day with leading zero if needed
+    const day = date.getDate().toString().padStart(2, '0');
+    // Get month abbreviated name
+    const month = date.toLocaleDateString('en-US', { month: 'short' });
+    // Get full year
+    const year = date.getFullYear();
+    return `${weekday}, ${day} ${month} ${year}`;
+  };
+
+
+  // this is temporary becaus I'll remove it when I remove day actions depth
+  const dayInfo = userHistory.find((day) => day.log_date === selectedDate);
+  const dayActions = dayInfo?.logs || []
+
   return (
     <div className="p-8">
       {/* Dashboard Header */}
@@ -218,13 +235,13 @@ const DashboardPage = () => {
             min-w-[300px]
             flex flex-col
             md:row-start-1 md:col-start-2 md:col-span-1
-            lg:row-start-1 lg:col-start-2 lg:col-span-2 lg:h-full 
+            lg:row-start-1 lg:col-start-2 lg:col-span-1 lg:h-full 
           "
         >
           <h2 className="text-xl font-semibold mb-4">
-            Deep dive for {selectedDate}
+            {formatDateHeader(selectedDate)}
           </h2>
-          <DeepDive
+          <Deepdive
             selectedDate={selectedDate}
             userHistory={userHistory}
             dayKpi={kpi}
@@ -278,6 +295,21 @@ const DashboardPage = () => {
             </div>
           </div>
         </div>
+        {dayActions.length > 0 && (
+          <section
+            className="
+                border rounded-lg border-zinc-800 dark:border-zinc-600
+                p-4
+                min-w-[300px]
+                flex flex-col
+                md:row-start-2 md:col-start-2 md:col-span-1
+                lg:row-start-2 lg:col-start-3 lg:col-span-1 lg:h-full
+              "
+          >
+            <h2 className="text-xl font-semibold mb-4">Today's Deep Dive</h2>
+            <DayActionsDepth dayActions={dayActions} />
+          </section>
+        )}
         {/* Daily Log Modal */}
         {isModalOpen && (
           <DailyLogModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
