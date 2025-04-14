@@ -1,8 +1,12 @@
 // In your shared types file (e.g., types.ts)
-export interface UserHistory {
+export interface UserHistoryDay {
     log_date: string;
-    actions_day_grade: number;
     logs: UserHistoryLogEntry[];
+    actions_day_grade: number;
+    num_engage_actions_positive: number;
+    num_engage_actions_negative: number;
+    num_avoid_actions_positive: number;
+    num_avoid_actions_negative: number;
 }
 
 export interface UserHistoryLogEntry {
@@ -21,4 +25,4 @@ export interface DayKpi {
     cumulative_gain: number;
     day_contribution: number;
     day_grade: number;
-  }
+}

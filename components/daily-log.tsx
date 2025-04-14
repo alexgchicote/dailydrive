@@ -4,7 +4,7 @@ import { useState, useEffect, Fragment } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { Circle, CircleCheck, CircleX, Pencil, PencilOff } from "lucide-react";
 import { ReactNode } from "react";
-import { UserHistory } from "@/types";
+import { UserHistoryDay } from "@/types";
 
 // Define a type for a selected action
 interface SelectedAction {
@@ -160,7 +160,6 @@ export function DailyLog({ userId }: DailyLogProps) {
         // Group actions by category_id.
         const categoryGroups: Record<string, any[]> = {};
         actions.forEach((action) => {
-            // Assume each action has a category_id field.
             const catId = action.category_id;
             if (!categoryGroups[catId]) {
                 categoryGroups[catId] = [];
@@ -210,6 +209,7 @@ export function DailyLog({ userId }: DailyLogProps) {
             const parent_status = parentStatuses[a.category_id] || false;
             return computeOutcome(a.intent, status, parent_status, a.group_category) === "positive";
         }).length;
+
         const num_engage_actions_negative =
             engageActions.filter((a) => {
                 const status = doneStatus[a.selected_action_id] || false;
@@ -221,9 +221,10 @@ export function DailyLog({ userId }: DailyLogProps) {
             }).length +
             new Set(
                 engageActions
-                    .filter((a) => !parentStatuses[a.category_id])
+                    .filter((a) => !parentStatuses[a.category_id] && a.group_category)
                     .map((a) => a.category_id)
             ).size;
+
         const num_engage_actions_neutral = engageActions.filter((a) => {
             const status = doneStatus[a.selected_action_id] || false;
             const parent_status = parentStatuses[a.category_id] || false;
@@ -334,7 +335,7 @@ export function DailyLog({ userId }: DailyLogProps) {
                             onChange={(e) =>
                                 setSelectedDate(e.target.value ? e.target.value : selectedDate)
                             }
-                            min={minDate}  // e.g., today - 7 days
+                            // min={minDate}  // e.g., today - 7 days
                             max={today}    // today's date; no future dates allowed
                             className="p-1 border rounded bg-gray-50 text-gray-900 dark:bg-gray-800 dark:text-gray-100"
                         />

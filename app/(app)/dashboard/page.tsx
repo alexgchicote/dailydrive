@@ -7,10 +7,12 @@ import ActionsCalendar from "@/components/actions-calendar";
 import { DailyLog, DailyLogModal } from "@/components/daily-log";
 import DayActions from "@/components/day-actions";
 import DayActionsDepth from "@/components/day-action-depth";
-import { UserHistory, DayKpi } from "@/types";
+import { UserHistoryDay, DayKpi } from "@/types";
 import JournalEditor from '@/components/journal-editor';
 import { JSONContent } from '@tiptap/react';
 import Deepdive from "@/components/deepdive";
+import { ActionsWeek } from "@/components/actions-week";
+import { ValueChart } from "@/components/value-chart";
 
 const DashboardPage = () => {
   const router = useRouter();
@@ -20,7 +22,7 @@ const DashboardPage = () => {
   const [userId, setUserId] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [selectedActions, setSelectedActions] = useState<any[]>([]);
-  const [userHistory, setUserHistory] = useState<UserHistory[]>([]);
+  const [userHistory, setUserHistory] = useState<UserHistoryDay[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Modal state
@@ -52,6 +54,10 @@ const DashboardPage = () => {
       .select(`
         log_date,
         actions_day_grade,
+        num_engage_actions_positive,
+        num_engage_actions_negative,
+        num_avoid_actions_positive,
+        num_avoid_actions_negative,
         daily_actions_log (
           selected_action_id,
           status,
@@ -71,10 +77,14 @@ const DashboardPage = () => {
     if (error) {
       console.error("Error fetching user history:", error);
     } else {
-      const flattenedHistory: UserHistory[] = (data || []).map((day: any) => {
+      const flattenedHistory: UserHistoryDay[] = (data || []).map((day: any) => {
         return {
           log_date: day.log_date,
           actions_day_grade: day.actions_day_grade,
+          num_engage_actions_positive: day.num_engage_actions_positive,
+          num_engage_actions_negative: day.num_engage_actions_negative,
+          num_avoid_actions_positive: day.num_avoid_actions_positive,
+          num_avoid_actions_negative: day.num_avoid_actions_negative,
           logs: (day.daily_actions_log || []).map((log: any) => {
             const actionsList = log.selected_actions.actions_list;
             const actionsCategories = actionsList.actions_categories;
@@ -156,14 +166,19 @@ const DashboardPage = () => {
 
   const formatDateHeader = (dateString: string) => {
     const date = new Date(dateString);
+
     // Get weekday name
     const weekday = date.toLocaleDateString('en-US', { weekday: 'long' });
-    // Get day with leading zero if needed
-    const day = date.getDate().toString().padStart(2, '0');
+
+    // Get day without leading zero
+    const day = date.getDate();
+
     // Get month abbreviated name
     const month = date.toLocaleDateString('en-US', { month: 'short' });
+
     // Get full year
     const year = date.getFullYear();
+
     return `${weekday}, ${day} ${month} ${year}`;
   };
 
@@ -221,10 +236,19 @@ const DashboardPage = () => {
           "
         >
           <h2 className="text-xl font-semibold mb-4">Calendar</h2>
+          <div className="flex-none border-b py-4 h-80">
           <ActionsCalendar
             userHistory={userHistory}
             handleDateClick={handleDateClick}
           />
+          </div>
+          <div className="flex-none py-4 h-40">
+            <ValueChart 
+              userHistory={userHistory}
+              kpi={kpi} 
+              selectedDate={selectedDate} 
+            />
+          </div>
         </section>
 
         {/* Deep Dive Section */}
@@ -244,8 +268,21 @@ const DashboardPage = () => {
           <Deepdive
             selectedDate={selectedDate}
             userHistory={userHistory}
-            dayKpi={kpi}
           />
+        </section>
+        <section
+          className="
+            border rounded-lg border-zinc-800 dark:border-zinc-600
+            p-4
+            min-w-[300px]
+            flex flex-col
+            md:row-start-2 md:col-start-1 md:col-span-1
+            lg:row-start-1 lg:col-start-3 lg:col-span-1 lg:h-full 
+          "
+        >
+          <h2 className="text-xl font-semibold mb-4">
+            {formatDateHeader(selectedDate)}
+          </h2>
         </section>
 
         {/* Chart Visual Section */}
@@ -266,7 +303,7 @@ const DashboardPage = () => {
             border rounded-lg border-zinc-800 dark:border-zinc-600
             p-4
             min-w-[300px]
-            md:row-start-2 md:col-start-1 md:col-span-1
+            md:row-start-2 md:col-start-2 md:col-span-1
             lg:row-start-2 lg:col-start-1 lg:col-span-2
           "
         >
@@ -295,6 +332,29 @@ const DashboardPage = () => {
             </div>
           </div>
         </div>
+
+
+        <section
+          className="
+            border rounded-lg border-zinc-800 dark:border-zinc-600
+            p-4
+            min-w-[300px]
+            lg:h-full
+            md:row-start-1 md:col-start-1 md:col-span-1
+            lg:row-start-3 lg:col-start-1 lg:col-span-2
+          "
+        >
+          <h2 className="text-xl font-semibold mb-4">Calendar</h2>
+          <div className="flex-none border-b py-4 h-40">
+            <ValueChart 
+              userHistory={userHistory}
+              kpi={kpi} 
+              selectedDate={selectedDate} 
+            />
+          </div>
+        </section>
+
+
         {dayActions.length > 0 && (
           <section
             className="
@@ -302,7 +362,7 @@ const DashboardPage = () => {
                 p-4
                 min-w-[300px]
                 flex flex-col
-                md:row-start-2 md:col-start-2 md:col-span-1
+                md:row-start-3 md:col-start-1 md:col-span-1
                 lg:row-start-2 lg:col-start-3 lg:col-span-1 lg:h-full
               "
           >

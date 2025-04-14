@@ -1,18 +1,18 @@
 "use client";
 import React from "react";
-import { UserHistory, DayKpi } from "@/types";
+import { UserHistoryDay, DayKpi } from "@/types";
 import DayActions from "./day-actions";
 import DayScore from "./day-score";
 import { ValueChart } from "./value-chart";
 import { CardContent } from "./ui/card";
+import { ActionsWeek } from "./actions-week";
 
 interface DeepdiveProps {
     selectedDate: string | null;
-    userHistory: UserHistory[];
-    dayKpi: DayKpi[]; // this should be merged into user History
+    userHistory: UserHistoryDay[];
 }
 
-export function Deepdive({ selectedDate, userHistory, dayKpi }: DeepdiveProps) {
+export function Deepdive({ selectedDate, userHistory }: DeepdiveProps) {
     // Find the history record that matches the selected date.
     const dayInfo = userHistory.find((day) => day.log_date === selectedDate);
 
@@ -26,8 +26,9 @@ export function Deepdive({ selectedDate, userHistory, dayKpi }: DeepdiveProps) {
 
     const dayScore = dayInfo.actions_day_grade;
     const dayActions = dayInfo.logs;
-    const positiveActions = dayActions.filter((action) => action.outcome === "positive").length;
-    const negativeActions = dayActions.filter((action) => action.outcome === "negative").length;
+
+    const positiveActions = dayInfo.num_engage_actions_positive + dayInfo.num_avoid_actions_positive;
+    const negativeActions = dayInfo.num_engage_actions_negative + dayInfo.num_avoid_actions_negative;
     const totalActions = positiveActions + negativeActions;
 
     return (
@@ -49,11 +50,15 @@ export function Deepdive({ selectedDate, userHistory, dayKpi }: DeepdiveProps) {
 
             {/* Row 2: ValueChart */}
             <div className="flex-none border-b py-4 h-40">
-                <ValueChart kpi={dayKpi} selectedDate={selectedDate} dayScore={dayScore} />
+                {/* <ValueChart kpi={dayKpi} selectedDate={selectedDate} dayScore={dayScore} /> */}
+                <ActionsWeek
+                    selectedDate={selectedDate}
+                    userHistory={userHistory}
+                />
             </div>
 
             {/* Row 3: DayActions (scrollable) */}
-            <div className="flex-1 min-h-0 overflow-y-auto p-4">
+            <div className="flex-1 min-h-0 overflow-y-auto">
                 {dayActions.length > 0 ? (
                     <DayActions dayActions={dayActions} />
                 ) : (
