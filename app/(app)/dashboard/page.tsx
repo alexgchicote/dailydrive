@@ -235,8 +235,8 @@ const DashboardPage = () => {
             lg:col-span-1
           "
         >
-          <h2 className="text-xl font-semibold mb-4">Calendar</h2>
-          <div className="flex-none border-b py-4 h-80">
+          <h2 className="text-xl font-semibold">Calendar</h2>
+          <div className="flex-none border-b h-80">
           <ActionsCalendar
             userHistory={userHistory}
             handleDateClick={handleDateClick}

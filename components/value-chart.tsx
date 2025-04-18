@@ -1,15 +1,13 @@
 "use client"
-import { TrendingUp } from "lucide-react";
 import { CartesianGrid, Line, LineChart, XAxis, ResponsiveContainer } from "recharts";
-import { UserHistoryDay } from "@/types";
-import { createClient } from "@/utils/supabase/client";
-import { DayKpi } from "@/types";
+import { UserHistoryDay, DayKpi } from "@/types";
 import {
   ChartConfig,
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
-} from "@/components/ui/chart"
+} from "@/components/ui/chart";
+import { getScoreColor } from "@/utils/utils";
 
 // Props for the Chart component
 interface ChartProps {
@@ -18,14 +16,16 @@ interface ChartProps {
   selectedDate: string | null;
 }
 
+// Use CSS variable for the blue-500 color
+// This will be defined in your globals.css or tailwind.config.js
 const chartConfig = {
   cumulative_gain: {
     label: "Cum Score",
-    color: "hsl(var(--chart-1))",
+    color: "hsl(var(--blue-500))", // Use CSS variable instead of hardcoded value
   },
   log_date: {
     label: "Date",
-    color: "hsl(var(--chart-1))",
+    color: "hsl(var(--blue-500))", // Use CSS variable instead of hardcoded value
   }
 } satisfies ChartConfig
 
@@ -35,13 +35,6 @@ export function ValueChart({ userHistory, kpi, selectedDate }: ChartProps) {
   
   // Determine dayScore only if dayInfo exists
   const dayScore = dayInfo ? dayInfo.actions_day_grade : 0;
-
-  // Determine score color based on the value
-  const getScoreColor = (score: number) => {
-    if (score === 1) return { light: "#4ade80", dark: "#15803d" }; // green-400/700
-    if (score > 0.6) return { light: "#facc15", dark: "#a16207" }; // yellow-400/700
-    return { light: "#f87171", dark: "#b91c1c" }; // red-400/700
-  };
 
   // Function to render dots only for the selected date
   const renderDot = (props: any) => {
@@ -66,7 +59,7 @@ export function ValueChart({ userHistory, kpi, selectedDate }: ChartProps) {
           cx={cx}
           cy={cy}
           r={4}
-          fill={pointColor.light}
+          fill={pointColor}
         />
       );
     }
@@ -111,8 +104,7 @@ export function ValueChart({ userHistory, kpi, selectedDate }: ChartProps) {
 
   // Get formatted first day of month strings
   const firstDayFormatted = getFirstDayOfMonthFormatted(kpiWithFormattedDate);
-  console.log("First day formatted:", firstDayFormatted);
-
+  
   // Custom active dot renderer to use the correct score color
   const renderActiveDot = (props: any) => {
     const { cx, cy, payload, index } = props;
@@ -135,7 +127,7 @@ export function ValueChart({ userHistory, kpi, selectedDate }: ChartProps) {
         r={4}
         fill="none"
         strokeWidth={2}
-        stroke={pointColor.light}
+        stroke={pointColor}
       />
     );
   };
@@ -148,8 +140,8 @@ export function ValueChart({ userHistory, kpi, selectedDate }: ChartProps) {
           data={kpiWithFormattedDate}
           margin={{
             top: 5,
-            left: 12,
-            right: 12,
+            left: 4,
+            right: 4,
             bottom: 5
           }}
           width={500}
@@ -171,7 +163,7 @@ export function ValueChart({ userHistory, kpi, selectedDate }: ChartProps) {
           <Line
             dataKey="cumulative_gain"
             type="linear"
-            stroke="hsl(var(--chart-1))"
+            stroke="hsl(var(--blue-500))" // Use CSS variable
             strokeWidth={2}
             dot={renderDot}
             activeDot={renderActiveDot}

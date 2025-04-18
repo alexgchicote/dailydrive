@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { UserHistoryDay, } from "@/types";
+import { getScoreColor } from "@/utils/utils";
 
 // Define a type for a log entry
 interface DayEntry {
@@ -45,11 +46,11 @@ function CalendarDay({
 
     // Get color for each date based on outcome.
     const getColorForDate = (date: Date, filterAction: string = "All"): string => {
-        const green = "bg-green-400 dark:bg-green-700";
-        const yellow = "bg-yellow-400 dark:bg-yellow-700";
-        const red = "bg-red-400 dark:bg-red-700";
-        const gray = "bg-gray-300 dark:bg-gray-500";
-        const faintGray = "bg-gray-200 dark:bg-gray-700";
+        const green = "bg-[hsl(var(--score-green))]";
+        const yellow = "bg-[hsl(var(--score-yellow))]";
+        const red = "bg-[hsl(var(--score-red))]";
+        const gray = "bg-[hsl(var(--score-gray))]";
+        const faintGray = "bg-[hsl(var(--score-faint-gray))]";
 
         if (date > today) {
             return faintGray;
@@ -60,13 +61,7 @@ function CalendarDay({
 
         if (filterAction === "All") {
             const grade = log.actions_day_grade ?? 0; // Default to 0 if null or undefined
-            if (grade === 1) {
-                return green;
-            } else if (grade > 0.6 && grade < 1) {
-                return yellow;
-            } else {
-                return red;
-            }
+            return `bg-[${getScoreColor(grade)}]`;
         } else {
             const outcome = (log.outcome ?? "").trim().toLowerCase();
 

@@ -14,3 +14,14 @@ export function encodedRedirect(
 ) {
   return redirect(`${path}?${type}=${encodeURIComponent(message)}`);
 }
+
+// Determine score color based on the value using CSS variables
+export const getScoreColor = (score: number) => {
+  const green = "hsl(var(--score-green))";
+  const yellow = "hsl(var(--score-yellow))";
+  const red = "hsl(var(--score-red))";
+
+  if (score === 1) return green;
+  if (score > 0.6) return yellow;
+  return red;
+};

@@ -8,6 +8,8 @@ import {
     ChartTooltipContent,
 } from "@/components/ui/chart"
 import { UserHistoryDay, UserHistoryLogEntry } from "@/types"
+import { useTheme } from "next-themes" // Import useTheme hook
+import { getScoreColor } from "@/utils/utils"
 
 interface ActionsWeekProps {
     selectedDate: string | null;
@@ -27,18 +29,16 @@ interface ChartDataItem {
     dotColor: string;
 }
 
-// Get hex color for grade - for use with Recharts
-const getColorHexForGrade = (grade: number): string => {
-    if (grade === 1) {
-        return "#4ade80"; // green color
-    } else if (grade > 0.6 && grade < 1) {
-        return "#facc15"; // yellow color 
-    } else {
-        return "#f87171"; // red color
-    }
-};
+
 
 export function ActionsWeek({ selectedDate, userHistory }: ActionsWeekProps) {
+    // Get theme information from next-themes
+    const { resolvedTheme } = useTheme();
+    const isDarkMode = resolvedTheme === 'dark';
+    
+    // Set line color based on theme
+    const lineColor = isDarkMode ? "#ffffff" : "#000000";
+
     // Helper function to get the abbreviated day-of-week given a date string.
     const getDayOfWeek = (dateStr: string) => {
         const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -110,7 +110,7 @@ export function ActionsWeek({ selectedDate, userHistory }: ActionsWeekProps) {
 
             // Add the grade data for coloring the dots
             const grade = day?.actions_day_grade ?? 0;
-            const dotColor = getColorHexForGrade(grade);
+            const dotColor = getScoreColor(grade);
 
             return {
                 dayOfWeek: getDayOfWeek(dateStr),
@@ -154,15 +154,15 @@ export function ActionsWeek({ selectedDate, userHistory }: ActionsWeekProps) {
     const chartConfig = {
         net_actions: {
             label: "Net",
-            color: "#ffffff",
+            color: lineColor, // Use theme-aware color
         },
         positive_actions: {
             label: "Positive",
-            color: "#4ade80",
+            color: "hsl(var(--score-green))",
         },
         negative_actions: {
             label: "Negative",
-            color: "#f87171",
+            // color: "hsl(var(--score-red))",
             // Add valueFormatter to display the absolute value
             valueFormatter: (value) => Math.abs(Number(value)).toLocaleString()
         },
@@ -183,7 +183,7 @@ export function ActionsWeek({ selectedDate, userHistory }: ActionsWeekProps) {
                     cy={cy}
                     r={4}
                     fill={payload.dotColor}
-                    stroke={payload.log_date === selectedDate ? "#8b5cf6" : "white"}
+                    stroke={payload.log_date === selectedDate ? "#8b5cf6" : lineColor}
                     strokeWidth={2}
                     className="drop-shadow-sm"
                 />
@@ -232,7 +232,7 @@ export function ActionsWeek({ selectedDate, userHistory }: ActionsWeekProps) {
                     />
                     <Bar
                         dataKey="positive_actions"
-                        fill="#4ade80"
+                        fill="hsl(var(--score-green))"
                         stackId="a"
                         radius={[4, 4, 0, 0]}
                     >
@@ -246,7 +246,7 @@ export function ActionsWeek({ selectedDate, userHistory }: ActionsWeekProps) {
                     </Bar>
                     <Bar
                         dataKey="negative_actions"
-                        fill="#f87171"
+                        fill="hsl(var(--score-red))"
                         stackId="b"
                         radius={[4, 4, 0, 0]}
                     >
@@ -261,7 +261,7 @@ export function ActionsWeek({ selectedDate, userHistory }: ActionsWeekProps) {
                     <Line
                         type="monotone"
                         dataKey="net_actions"
-                        stroke="white"
+                        stroke={lineColor} // Use theme-aware color for the line
                         strokeWidth={2}
                         dot={<CustomDot />}
                         activeDot={false}
