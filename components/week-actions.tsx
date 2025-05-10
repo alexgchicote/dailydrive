@@ -31,13 +31,9 @@ interface ChartDataItem {
 
 
 
-export function ActionsWeek({ selectedDate, userHistory }: ActionsWeekProps) {
-    // Get theme information from next-themes
-    const { resolvedTheme } = useTheme();
-    const isDarkMode = resolvedTheme === 'dark';
-    
+export function ActionsWeek({ selectedDate, userHistory }: ActionsWeekProps) {    
     // Set line color based on theme
-    const lineColor = isDarkMode ? "#ffffff" : "#000000";
+    const lineColor = "hsl(var(--week-actions-line))";
 
     // Helper function to get the abbreviated day-of-week given a date string.
     const getDayOfWeek = (dateStr: string) => {
@@ -154,7 +150,7 @@ export function ActionsWeek({ selectedDate, userHistory }: ActionsWeekProps) {
     const chartConfig = {
         net_actions: {
             label: "Net",
-            color: lineColor, // Use theme-aware color
+            color: lineColor
         },
         positive_actions: {
             label: "Positive",
@@ -162,7 +158,7 @@ export function ActionsWeek({ selectedDate, userHistory }: ActionsWeekProps) {
         },
         negative_actions: {
             label: "Negative",
-            // color: "hsl(var(--score-red))",
+            color: "hsl(var(--score-red))",
             // Add valueFormatter to display the absolute value
             valueFormatter: (value) => Math.abs(Number(value)).toLocaleString()
         },
@@ -183,7 +179,7 @@ export function ActionsWeek({ selectedDate, userHistory }: ActionsWeekProps) {
                     cy={cy}
                     r={4}
                     fill={payload.dotColor}
-                    stroke={payload.log_date === selectedDate ? "#8b5cf6" : lineColor}
+                    stroke={payload.log_date === selectedDate ? "hsl(var(--selected-date-highlight))" : lineColor}
                     strokeWidth={2}
                     className="drop-shadow-sm"
                 />
@@ -228,7 +224,6 @@ export function ActionsWeek({ selectedDate, userHistory }: ActionsWeekProps) {
                             />
                         }
                         cursor={false}
-
                     />
                     <Bar
                         dataKey="positive_actions"
@@ -239,7 +234,7 @@ export function ActionsWeek({ selectedDate, userHistory }: ActionsWeekProps) {
                         {chartData.map((entry, index) => (
                             <Cell
                                 key={`positive-${index}`}
-                                stroke={entry.log_date === selectedDate ? "#8b5cf6" : "transparent"}
+                                stroke={entry.log_date === selectedDate ? "hsl(var(--selected-date-highlight))" : "transparent"}
                                 strokeWidth={entry.log_date === selectedDate ? 2 : 0}
                             />
                         ))}
@@ -252,8 +247,8 @@ export function ActionsWeek({ selectedDate, userHistory }: ActionsWeekProps) {
                     >
                         {chartData.map((entry, index) => (
                             <Cell
-                                key={`positive-${index}`}
-                                stroke={entry.log_date === selectedDate ? "#8b5cf6" : "transparent"}
+                                key={`negative-${index}`}
+                                stroke={entry.log_date === selectedDate ? "hsl(var(--selected-date-highlight))" : "transparent"}
                                 strokeWidth={entry.log_date === selectedDate ? 2 : 0}
                             />
                         ))}
@@ -261,7 +256,7 @@ export function ActionsWeek({ selectedDate, userHistory }: ActionsWeekProps) {
                     <Line
                         type="monotone"
                         dataKey="net_actions"
-                        stroke={lineColor} // Use theme-aware color for the line
+                        stroke={lineColor}
                         strokeWidth={2}
                         dot={<CustomDot />}
                         activeDot={false}

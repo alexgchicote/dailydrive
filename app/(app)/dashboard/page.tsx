@@ -4,15 +4,12 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import ActionsCalendar from "@/components/actions-calendar";
-import { DailyLog, DailyLogModal } from "@/components/daily-log";
-import DayActions from "@/components/day-actions";
 import DayActionsDepth from "@/components/day-action-depth";
-import { UserHistoryDay, DayKpi } from "@/types";
+import { UserHistoryDay, DayKpi, UserHistoryLogEntry } from "@/types";
 import JournalEditor from '@/components/journal-editor';
 import { JSONContent } from '@tiptap/react';
-import Deepdive from "@/components/deepdive";
-import { ActionsWeek } from "@/components/actions-week";
 import { ValueChart } from "@/components/value-chart";
+import DayView from "@/components/day-view";
 
 const DashboardPage = () => {
   const router = useRouter();
@@ -21,7 +18,7 @@ const DashboardPage = () => {
   // Local state for basic user info.
   const [userId, setUserId] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
-  const [selectedActions, setSelectedActions] = useState<any[]>([]);
+  const [selectedActions, setSelectedActions] = useState<UserHistoryLogEntry[]>([]);
   const [userHistory, setUserHistory] = useState<UserHistoryDay[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -35,16 +32,49 @@ const DashboardPage = () => {
   );
 
   // Functions for fetching user data
-  const fetchNumSelectedActions = async (uid: string) => {
+  const fetchSelectedActions = async (uid: string) => {
+    const today = new Date().toISOString().split("T")[0]
     const { data, error } = await supabase
       .from("selected_actions")
-      .select(`selected_action_id`)
-      .eq("user_id", uid)
-      .is("removed_from_tracking_on", null);
+      .select(`
+        selected_action_id,
+        action_id,
+        added_to_tracking_on,
+        group_category,
+        actions_list (
+        action_name,
+            intent,
+            actions_categories (
+                category_id,
+                category_name
+            )
+        ),
+        daily_actions_log (
+            status,
+            notes,
+            outcome
+        )
+    `)
+      .eq("user_id", uid) // filters selected_actions by user
+      .filter("added_to_tracking_on", "lte", today)
+      .or(`removed_from_tracking_on.is.null,removed_from_tracking_on.gt.${today}`)
+      .eq("daily_actions_log.log_date", today)
     if (error) {
       console.error("Error fetching selected actions:", error);
     } else {
-      setSelectedActions(data || []);
+
+      const flatData: UserHistoryLogEntry[] = data.map((row: any) => ({
+        selected_action_id: row.selected_action_id,
+        group_category: row.group_category,
+        action_name: row.actions_list?.action_name || "Unknown",
+        intent: row.actions_list?.intent || "engage",
+        category_id: row.actions_list?.actions_categories?.category_id || 0,
+        category_name: row.actions_list?.actions_categories?.category_name || "Uncategorized",
+        status: row.daily_actions_log?.[0]?.status ?? null, // ← FIX HERE
+        notes: row.daily_actions_log?.[0]?.notes,
+        outcome: row.daily_actions_log?.[0]?.outcome
+      }));
+      setSelectedActions(flatData || []);
     }
   };
 
@@ -64,10 +94,12 @@ const DashboardPage = () => {
           outcome,
           notes,
           selected_actions (
+            group_category,
             actions_list (
                 action_name,
                 intent,
                 actions_categories (
+                    category_id,
                     category_name
                 )
             )
@@ -96,6 +128,7 @@ const DashboardPage = () => {
               action_name: actionsList.action_name,
               intent: actionsList.intent,
               category_name: actionsCategories.category_name,
+              group_category: log.selected_actions.group_category
             };
           }),
         };
@@ -141,7 +174,7 @@ const DashboardPage = () => {
       } else {
         setUserEmail(session.user.email ?? null);
         setUserId(session.user.id);
-        fetchNumSelectedActions(session.user.id);
+        fetchSelectedActions(session.user.id);
         fetchUserHisotry(session.user.id);
         fetchkpi(session.user.id); // delete and merge into user history
         setLoading(false);
@@ -237,16 +270,16 @@ const DashboardPage = () => {
         >
           <h2 className="text-xl font-semibold">Calendar</h2>
           <div className="flex-none border-b h-80">
-          <ActionsCalendar
-            userHistory={userHistory}
-            handleDateClick={handleDateClick}
-          />
+            <ActionsCalendar
+              userHistory={userHistory}
+              handleDateClick={handleDateClick}
+            />
           </div>
           <div className="flex-none py-4 h-40">
-            <ValueChart 
+            <ValueChart
               userHistory={userHistory}
-              kpi={kpi} 
-              selectedDate={selectedDate} 
+              kpi={kpi}
+              selectedDate={selectedDate}
             />
           </div>
         </section>
@@ -254,20 +287,16 @@ const DashboardPage = () => {
         {/* Deep Dive Section */}
         <section
           className="
-            border rounded-lg border-zinc-800 dark:border-zinc-600
-            p-4
-            min-w-[300px]
             flex flex-col
             md:row-start-1 md:col-start-2 md:col-span-1
             lg:row-start-1 lg:col-start-2 lg:col-span-1 lg:h-full 
           "
         >
-          <h2 className="text-xl font-semibold mb-4">
-            {formatDateHeader(selectedDate)}
-          </h2>
-          <Deepdive
+          <DayView
             selectedDate={selectedDate}
+            selectedActions={selectedActions}
             userHistory={userHistory}
+            userId={userId}
           />
         </section>
         <section
@@ -283,18 +312,8 @@ const DashboardPage = () => {
           <h2 className="text-xl font-semibold mb-4">
             {formatDateHeader(selectedDate)}
           </h2>
+          <DayActionsDepth dayActions={dayActions} />
         </section>
-
-        {/* Chart Visual Section */}
-        <div
-          className="
-            lg:h-full overflow-auto
-            md:col-span-2 md:row-start-1
-            lg:col-span-2 lg:row-start-1
-          "
-        >
-
-        </div>
 
         {/* Journal Editor Section */}
         <div
@@ -333,49 +352,12 @@ const DashboardPage = () => {
           </div>
         </div>
 
-
-        <section
-          className="
-            border rounded-lg border-zinc-800 dark:border-zinc-600
-            p-4
-            min-w-[300px]
-            lg:h-full
-            md:row-start-1 md:col-start-1 md:col-span-1
-            lg:row-start-3 lg:col-start-1 lg:col-span-2
-          "
-        >
-          <h2 className="text-xl font-semibold mb-4">Calendar</h2>
-          <div className="flex-none border-b py-4 h-40">
-            <ValueChart 
-              userHistory={userHistory}
-              kpi={kpi} 
-              selectedDate={selectedDate} 
-            />
-          </div>
-        </section>
-
-
-        {dayActions.length > 0 && (
-          <section
-            className="
-                border rounded-lg border-zinc-800 dark:border-zinc-600
-                p-4
-                min-w-[300px]
-                flex flex-col
-                md:row-start-3 md:col-start-1 md:col-span-1
-                lg:row-start-2 lg:col-start-3 lg:col-span-1 lg:h-full
-              "
-          >
-            <h2 className="text-xl font-semibold mb-4">Today's Deep Dive</h2>
-            <DayActionsDepth dayActions={dayActions} />
-          </section>
-        )}
         {/* Daily Log Modal */}
-        {isModalOpen && (
+        {/* {isModalOpen && (
           <DailyLogModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
-            <DailyLog userId={userId} />
+            <DailyLog userId={userId} selectedDate={selectedDate}/>
           </DailyLogModal>
-        )}
+        )} */}
       </div>
     </div>
   );

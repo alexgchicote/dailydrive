@@ -86,7 +86,7 @@ function CalendarDay({
     const commonClasses = `w-8 h-8 rounded-md flex items-center justify-center 
       ${getColorForDate(date, filterAction)}
       ${isToday(date) ? "border-2 dark:border-gray-700 border-gray-300" : ""}
-      ${isActive ? "border-2 border-purple-600 dark:border-purple-400" : ""}
+      ${isActive ? "border-2 border-[hsl(var(--selected-date-highlight))]" : ""}
       ${isPastOrToday ? "cursor-pointer hover:bg-blue-300 dark:hover:bg-blue-700" : "cursor-default opacity-50"}`;
 
     return isPastOrToday ? (

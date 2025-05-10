@@ -37,7 +37,7 @@ export function ValueChart({ userHistory, kpi, selectedDate }: ChartProps) {
   const dayScore = dayInfo ? dayInfo.actions_day_grade : 0;
 
   // Function to render dots only for the selected date
-  const renderDot = (props: any) => {
+  const renderSelectedDayDot = (props: any) => {
     const { cx, cy, payload, index } = props;
     
     // Convert both to ISO date strings for comparison
@@ -60,6 +60,8 @@ export function ValueChart({ userHistory, kpi, selectedDate }: ChartProps) {
           cy={cy}
           r={4}
           fill={pointColor}
+          strokeWidth={2}
+          stroke="hsl(var(--selected-date-highlight))"
         />
       );
     }
@@ -71,7 +73,7 @@ export function ValueChart({ userHistory, kpi, selectedDate }: ChartProps) {
         cx={cx} 
         cy={cy} 
         r={0} 
-        fill="none" 
+        fill="none"
       />
     );
   };
@@ -125,9 +127,7 @@ export function ValueChart({ userHistory, kpi, selectedDate }: ChartProps) {
         cx={cx}
         cy={cy}
         r={4}
-        fill="none"
-        strokeWidth={2}
-        stroke={pointColor}
+        fill={pointColor}
       />
     );
   };
@@ -165,7 +165,7 @@ export function ValueChart({ userHistory, kpi, selectedDate }: ChartProps) {
             type="linear"
             stroke="hsl(var(--blue-500))" // Use CSS variable
             strokeWidth={2}
-            dot={renderDot}
+            dot={renderSelectedDayDot}
             activeDot={renderActiveDot}
           />
         </LineChart>

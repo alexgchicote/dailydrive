@@ -11,12 +11,14 @@ export interface UserHistoryDay {
 
 export interface UserHistoryLogEntry {
     selected_action_id: number;
-    status: string;
+    status: string | null;
     outcome: "positive" | "negative" | "neutral" | string;
     notes: string;
     action_name: string;
-    intent: string;
+    intent: "engage" | "avoid";
+    category_id: number;
     category_name: string;
+    group_category: boolean
 }
 
 // Define a type for a log entry

@@ -25,3 +25,23 @@ export const getScoreColor = (score: number) => {
   if (score > 0.6) return yellow;
   return red;
 };
+
+export const formatDateHeader = (dateString: string) => {
+  if (!dateString) return "";
+
+  const date = new Date(dateString);
+
+  // Get weekday name
+  const weekday = date.toLocaleDateString('en-US', { weekday: 'long' });
+
+  // Get day without leading zero
+  const day = date.getDate();
+
+  // Get month abbreviated name
+  const month = date.toLocaleDateString('en-US', { month: 'short' });
+
+  // Get full year
+  const year = date.getFullYear();
+
+  return `${weekday}, ${day} ${month} ${year}`;
+};

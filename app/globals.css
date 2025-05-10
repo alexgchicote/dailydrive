@@ -39,12 +39,14 @@
 --blue-500: 217.2 91.2% 59.8%; /* This is the hsl value for Tailwind's blue-500 */
 
 /* Score colors */
---score-green: 142 76% 56%;    /* #4ade80 - green-400 */
+--score-green: 142 69% 58%;    /* #4ade80 - green-400 */
 --score-yellow: 48 96% 53%;    /* #facc15 - yellow-400 */
 --score-red: 0 91% 71%;        /* #f87171 - red-400 */
 --score-gray: 220 9% 84%;      /* #d1d5db - gray-300 */
 --score-faint-gray: 220 14% 96%; /* #e5e7eb - gray-200 */
- }
+--selected-date-highlight: 271 81% 56%; /* #9333ea - purple-600 */
+--week-actions-line: 0 0% 0%; /* #000000 - black */
+}
 .dark {
 --background: 0 0% 3.9%;
 --foreground: 0 0% 98%;
@@ -84,8 +86,10 @@
 --score-green: 142 72% 29%;    /* #15803d - green-700 */
 --score-yellow: 35 92% 33%;    /* #a16207 - yellow-700 */
 --score-red: 0 74% 42%;        /* #b91c1c - red-700 */
---score-gray: 220 9% 46%;      /* #6b7280 - gray-300 */
---score-faint-gray: 217 19% 27%; /* #374151 - gray-200 */
+--score-gray: 220 9% 46%;      /* #6b7280 - gray-500 */
+--score-faint-gray: 217 19% 27%; /* #374151 - gray-700 */
+--selected-date-highlight: 270 95% 75%; /* #c084fc - purple-400 */
+--week-actions-line: 0 0% 100%; /* #ffffff - white */
  }
 }
 @layer base {
