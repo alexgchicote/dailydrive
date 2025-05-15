@@ -46,7 +46,6 @@ export function DayView({ selectedDate, selectedActions, userHistory, userId }: 
                 <Deepdive
                     selectedDate={selectedDate}
                     userHistory={userHistory}
-                    userId={userId}
                     onEdit={toggleEditMode}
                 />
             )}

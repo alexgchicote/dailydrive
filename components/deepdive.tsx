@@ -1,22 +1,19 @@
 "use client";
 import React from "react";
-import { UserHistoryDay, DayKpi } from "@/types";
+import { UserHistoryDay } from "@/types";
 import DayActions from "./day-actions";
 import DayScore from "./day-score";
-import { ValueChart } from "./value-chart";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { ActionsWeek } from "./week-actions";
-import { DailyLog } from "./daily-log";
 import { Pencil } from "lucide-react";
 
 interface DeepdiveProps {
     selectedDate: string;
     userHistory: UserHistoryDay[];
-    userId: string;
     onEdit: () => void; // Added prop for edit mode toggle
 }
 
-export function Deepdive({ selectedDate, userHistory, userId, onEdit }: DeepdiveProps) {
+export function Deepdive({ selectedDate, userHistory, onEdit }: DeepdiveProps) {
     // Format date header function
     const formatDateHeader = (dateString: string) => {
         if (!dateString) return "";

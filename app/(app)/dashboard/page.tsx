@@ -22,8 +22,6 @@ const DashboardPage = () => {
   const [userHistory, setUserHistory] = useState<UserHistoryDay[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Modal state
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split("T")[0]);
 
   // Journal date state - defaults to today
@@ -229,15 +227,6 @@ const DashboardPage = () => {
         </div>
         <div className="flex items-center gap-4">
           <button
-            onClick={() => {
-              setSelectedDate(new Date().toISOString().split("T")[0]);
-              setIsModalOpen(true);
-            }}
-            className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg"
-          >
-            Log Day
-          </button>
-          <button
             onClick={() => router.push("/selected-actions")}
             className="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg"
           >
@@ -284,10 +273,11 @@ const DashboardPage = () => {
           </div>
         </section>
 
-        {/* Deep Dive Section */}
+        {/* Day View Section */}
         <section
           className="
             flex flex-col
+            min-w-[300px]
             md:row-start-1 md:col-start-2 md:col-span-1
             lg:row-start-1 lg:col-start-2 lg:col-span-1 lg:h-full 
           "
@@ -351,13 +341,6 @@ const DashboardPage = () => {
             </div>
           </div>
         </div>
-
-        {/* Daily Log Modal */}
-        {/* {isModalOpen && (
-          <DailyLogModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
-            <DailyLog userId={userId} selectedDate={selectedDate}/>
-          </DailyLogModal>
-        )} */}
       </div>
     </div>
   );

@@ -83,11 +83,10 @@ function CalendarDay({
         return `${year}-${month}-${day}`;
     };
 
-    const commonClasses = `w-8 h-8 rounded-md flex items-center justify-center 
-      ${getColorForDate(date, filterAction)}
-      ${isToday(date) ? "border-2 dark:border-gray-700 border-gray-300" : ""}
-      ${isActive ? "border-2 border-[hsl(var(--selected-date-highlight))]" : ""}
-      ${isPastOrToday ? "cursor-pointer hover:bg-blue-300 dark:hover:bg-blue-700" : "cursor-default opacity-50"}`;
+    const commonClasses = `w-8 h-8 rounded-md flex items-center justify-center
+    ${getColorForDate(date, filterAction)}
+    ${isActive ? "border-2 border-[hsl(var(--selected-date-highlight))]" : isToday(date) ? "border-2 dark:border-gray-700 border-gray-300" : ""}
+    ${isPastOrToday ? "cursor-pointer hover:bg-blue-300 dark:hover:bg-blue-700" : "cursor-default opacity-50"}`;
 
     return isPastOrToday ? (
         //  Render a button if date is today or in the past

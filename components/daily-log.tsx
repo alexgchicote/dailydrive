@@ -2,9 +2,8 @@
 
 import { useState, useEffect, Fragment } from "react";
 import { createClient } from "@/utils/supabase/client";
-import { Circle, CircleCheck, CircleX, Pencil, PencilOff, Save, X } from "lucide-react";
+import { Circle, CircleCheck, CircleX, Pencil, PencilOff, Save, X, Plus, Minus } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { ReactNode } from "react";
 import { UserHistoryLogEntry } from "@/types";
 import { formatDateHeader } from "@/utils/utils";
 
@@ -250,19 +249,19 @@ export function DailyLog({ userId, selectedDate, selectedActions, onClose }: Dai
             <CardHeader className="pb-0 flex flex-row justify-between items-center">
                 <CardTitle>{formatDateHeader(selectedDate)}</CardTitle>
                 <div className="flex space-x-2">
-                    {/* X button to close without saving */}
-                    <button
-                        onClick={onClose}
-                        className="bg-gray-500 hover:bg-gray-600 text-white p-2 rounded flex items-center justify-center transition-colors"
-                    >
-                        <X className="h-5 w-5" />
-                    </button>
                     {/* Save button */}
                     <button
                         onClick={handleSaveAndClose}
                         className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded flex items-center justify-center transition-colors"
                     >
                         <Save className="h-5 w-5" />
+                    </button>
+                    {/* X button to close without saving */}
+                    <button
+                        onClick={onClose}
+                        className="bg-gray-500 hover:bg-gray-600 text-white p-2 rounded flex items-center justify-center transition-colors"
+                    >
+                        <X className="h-5 w-5" />
                     </button>
                 </div>
             </CardHeader>
@@ -387,7 +386,14 @@ const DailyLogActionRow = ({
                                         !prev[action.selected_action_id],
                                 }))
                             }
-                            className="bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-200 px-2 py-1 rounded focus:outline-none"
+                            className="
+                                text-gray-600 
+                                dark:text-gray-500 
+                                px-2 
+                                py-1 
+                                rounded 
+                                focus:outline-none
+                            "
                         >
                             {isNotesOpen ? <PencilOff /> : <Pencil />}
                         </button>
