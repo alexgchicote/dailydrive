@@ -31,8 +31,10 @@ export function DayView({ selectedDate, selectedActions, userHistory, userId }: 
     
     // Determine which actions to use - declare this BEFORE the return statement
     // so it's in scope for the entire component
-    const logActions = dayInfo ? dayInfo.logs : selectedActions;
+    const logActions = dayInfo ? dayInfo.logs : selectedActions; // TODO: change this to be the selected actions on the day selected, not hard coded to today.
     
+    console.log('logActions from dayview', logActions);
+
     return (
         <>
             {shouldBeInEditMode ? (

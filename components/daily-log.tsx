@@ -31,7 +31,7 @@ export function DailyLog({ userId, selectedDate, selectedActions, onClose }: Dai
             acc[curr.selected_action_id] = Boolean(curr.status);
             return acc;
         }, {} as Record<number, boolean>);
-        
+
         // Build notes object from selectedActions
         const notesMap: Record<number, string> = selectedActions.reduce((acc, curr) => {
             if (curr.notes != null && curr.notes.trim() !== "") {
@@ -39,7 +39,7 @@ export function DailyLog({ userId, selectedDate, selectedActions, onClose }: Dai
             }
             return acc;
         }, {} as Record<number, string>);
-        
+
         setDoneStatus(doneStatusMap);
         setNotes(notesMap);
         setIsLoaded(true);
@@ -66,14 +66,43 @@ export function DailyLog({ userId, selectedDate, selectedActions, onClose }: Dai
         }
     };
 
+    // // Helper function to compute parent statuses (grouped by category)
+    // const computeParentStatuses = (
+    //     actions: any[],
+    //     doneStatus: Record<number, boolean>
+    // ): Record<string, boolean> => {
+    //     const parentStatuses: Record<string, boolean> = {};
+    //     // Group actions by category_id.
+    //     const categoryGroups: Record<string, any[]> = {};
+    //     actions.forEach((action) => {
+    //         const catId = action.category_id;
+    //         if (!categoryGroups[catId]) {
+    //             categoryGroups[catId] = [];
+    //         }
+    //         categoryGroups[catId].push(action);
+    //     });
+    //     // For each category, if at least one action is marked done, parent_status is true.
+    //     Object.keys(categoryGroups).forEach((catId) => {
+    //         const group = categoryGroups[catId];
+    //         const anyDone = group.some((action) => doneStatus[action.selected_action_id]);
+    //         parentStatuses[catId] = anyDone;
+    //     });
+
+    //     console.log
+
+    //     return parentStatuses;
+    // };
+
     // Helper function to compute parent statuses (grouped by category)
     const computeParentStatuses = (
-        actions: any[],
+        actions: UserHistoryLogEntry[],
         doneStatus: Record<number, boolean>
     ): Record<string, boolean> => {
         const parentStatuses: Record<string, boolean> = {};
+
         // Group actions by category_id.
         const categoryGroups: Record<string, any[]> = {};
+
         actions.forEach((action) => {
             const catId = action.category_id;
             if (!categoryGroups[catId]) {
@@ -81,12 +110,23 @@ export function DailyLog({ userId, selectedDate, selectedActions, onClose }: Dai
             }
             categoryGroups[catId].push(action);
         });
+
         // For each category, if at least one action is marked done, parent_status is true.
         Object.keys(categoryGroups).forEach((catId) => {
             const group = categoryGroups[catId];
-            const anyDone = group.some((action) => doneStatus[action.selected_action_id]);
-            parentStatuses[catId] = anyDone;
+            
+            // Only consider actions with group_category=true for parent status
+            const groupableActions = group.filter(action => action.group_category);
+            
+            // If there are no groupable actions in this category, parent status is false
+            if (groupableActions.length === 0) {
+                parentStatuses[catId] = false;
+            } else {
+                const anyDone = groupableActions.some((action) => doneStatus[action.selected_action_id]);
+                parentStatuses[catId] = anyDone;
+            }
         });
+
         return parentStatuses;
     };
 

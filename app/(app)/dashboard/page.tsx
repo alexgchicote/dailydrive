@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import ActionsCalendar from "@/components/actions-calendar";
 import DayActionsDepth from "@/components/day-action-depth";
-import { UserHistoryDay, DayKpi, UserHistoryLogEntry } from "@/types";
+import { SupabaseUserHistoryResponse, UserHistoryDay, DayKpi, UserHistoryLogEntry } from "@/types";
 import JournalEditor from '@/components/journal-editor';
 import { JSONContent } from '@tiptap/react';
 import { ValueChart } from "@/components/value-chart";
@@ -64,10 +64,10 @@ const DashboardPage = () => {
       const flatData: UserHistoryLogEntry[] = data.map((row: any) => ({
         selected_action_id: row.selected_action_id,
         group_category: row.group_category,
-        action_name: row.actions_list?.action_name || "Unknown",
-        intent: row.actions_list?.intent || "engage",
-        category_id: row.actions_list?.actions_categories?.category_id || 0,
-        category_name: row.actions_list?.actions_categories?.category_name || "Uncategorized",
+        action_name: row.actions_list?.action_name,
+        intent: row.actions_list?.intent,
+        category_id: row.actions_list?.actions_categories?.category_id,
+        category_name: row.actions_list?.actions_categories?.category_name,
         status: row.daily_actions_log?.[0]?.status ?? null, // ← FIX HERE
         notes: row.daily_actions_log?.[0]?.notes,
         outcome: row.daily_actions_log?.[0]?.outcome
@@ -76,10 +76,13 @@ const DashboardPage = () => {
     }
   };
 
-  const fetchUserHisotry = async (uid: string) => {
-    const { data, error } = await supabase
-      .from("user_days")
-      .select(`
+
+
+  const fetchUserHistory = async (uid: string): Promise<void> => {
+    try {
+      const { data, error } = await supabase
+        .from("user_days")
+        .select(`
         log_date,
         actions_day_grade,
         num_engage_actions_positive,
@@ -94,47 +97,68 @@ const DashboardPage = () => {
           selected_actions (
             group_category,
             actions_list (
-                action_name,
-                intent,
-                actions_categories (
-                    category_id,
-                    category_name
-                )
+              action_name,
+              intent,
+              actions_categories (
+                category_id,
+                category_name
+              )
             )
           )
         )`)
-      .eq("user_id", uid);
-    if (error) {
-      console.error("Error fetching user history:", error);
-    } else {
-      const flattenedHistory: UserHistoryDay[] = (data || []).map((day: any) => {
-        return {
-          log_date: day.log_date,
-          actions_day_grade: day.actions_day_grade,
-          num_engage_actions_positive: day.num_engage_actions_positive,
-          num_engage_actions_negative: day.num_engage_actions_negative,
-          num_avoid_actions_positive: day.num_avoid_actions_positive,
-          num_avoid_actions_negative: day.num_avoid_actions_negative,
-          logs: (day.daily_actions_log || []).map((log: any) => {
-            const actionsList = log.selected_actions.actions_list;
-            const actionsCategories = actionsList.actions_categories;
-            return {
-              selected_action_id: log.selected_action_id,
-              status: log.status,
-              outcome: log.outcome,
-              notes: log.notes,
-              action_name: actionsList.action_name,
-              intent: actionsList.intent,
-              category_name: actionsCategories.category_name,
-              group_category: log.selected_actions.group_category
+        .eq("user_id", uid);
+
+      if (error) {
+        console.error("Error fetching user history:", error);
+        return;
+      }
+
+      if (!Array.isArray(data)) {
+        console.error("Invalid data structure: expected array");
+        return;
+      }
+
+      const flattenedHistory: UserHistoryDay[] = data.map(day => ({
+        log_date: String(day.log_date),
+        actions_day_grade: Number(day.actions_day_grade),
+        num_engage_actions_positive: Number(day.num_engage_actions_positive),
+        num_engage_actions_negative: Number(day.num_engage_actions_negative),
+        num_avoid_actions_positive: Number(day.num_avoid_actions_positive),
+        num_avoid_actions_negative: Number(day.num_avoid_actions_negative),
+        logs: (day.daily_actions_log || []).map(log => {
+          const selectedAction = ((log.selected_actions || {}) as unknown) as {
+            group_category: boolean;
+            actions_list: {
+              action_name: string;
+              intent: "engage" | "avoid";
+              actions_categories: {
+                category_id: number;
+                category_name: string;
+              };
             };
-          }),
-        };
-      });
+          };
+          const actionsList = selectedAction.actions_list || {};
+          const categories = actionsList.actions_categories || {};
+
+          return {
+            selected_action_id: Number(log.selected_action_id),
+            status: log.status,
+            outcome: String(log.outcome),
+            notes: String(log.notes || ''),
+            action_name: String(actionsList.action_name || ''),
+            intent: actionsList.intent as "engage" | "avoid",
+            category_id: Number(categories.category_id),
+            category_name: String(categories.category_name || ''),
+            group_category: Boolean(selectedAction.group_category)
+          };
+        })
+      }));
+
       setUserHistory(flattenedHistory);
+    } catch (err) {
+      console.error("Unexpected error in fetchUserHistory:", err);
     }
   };
-
   // Load the Stock price kpi
   const [kpi, setKpi] = useState<DayKpi[]>([]);
 
@@ -173,7 +197,7 @@ const DashboardPage = () => {
         setUserEmail(session.user.email ?? null);
         setUserId(session.user.id);
         fetchSelectedActions(session.user.id);
-        fetchUserHisotry(session.user.id);
+        fetchUserHistory(session.user.id);
         fetchkpi(session.user.id); // delete and merge into user history
         setLoading(false);
       }
