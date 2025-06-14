@@ -2,6 +2,7 @@
 
 import React from "react";
 import { Switch } from "@/components/ui/switch";
+import { X, Plus } from "lucide-react";
 
 // Define an interface for your user actions.
 interface UserAction {
@@ -42,15 +43,14 @@ const SelectedActionsTable: React.FC<SelectedActionsTableProps> = ({
     const sortedCategories = Object.keys(grouped).sort();
 
     return (
-        <table className="min-w-full rounded overflow-hidden bg-gray-50 dark:bg-gray-800 mb-8">
+        <table className="w-full rounded overflow-hidden bg-gray-50 dark:bg-gray-800">
             <thead>
                 <tr className="border-b border-gray-200 dark:border-gray-700">
                     <th className="px-4 py-2 text-left">Action</th>
-                    <th className="px-4 py-2 text-left">ID</th>
                     <th className="px-4 py-2 text-left">Date Added</th>
                     <th className="px-4 py-2 text-left">Intent</th>
                     <th className="px-4 py-2 text-center">Group w. Category</th>
-                    <th className="px-4 py-2 text-center">Remove</th>
+                    <th className="w-12"></th>
                 </tr>
             </thead>
             <tbody>
@@ -58,7 +58,7 @@ const SelectedActionsTable: React.FC<SelectedActionsTableProps> = ({
                     <React.Fragment key={cat}>
                         <tr>
                             <td
-                                colSpan={6}
+                                colSpan={5}
                                 className="px-4 py-2 font-bold text-gray-900 dark:text-gray-100 bg-gray-200 dark:bg-gray-700"
                             >
                                 {cat}
@@ -71,9 +71,6 @@ const SelectedActionsTable: React.FC<SelectedActionsTableProps> = ({
                             >
                                 <td className="px-4 py-2 text-gray-700 dark:text-gray-300">
                                     {action.action_name || "N/A"}
-                                </td>
-                                <td className="px-4 py-2 text-gray-700 dark:text-gray-300">
-                                    {action.action_id || "N/A"}
                                 </td>
                                 <td className="px-4 py-2 text-gray-700 dark:text-gray-300">
                                     {action.added_to_tracking_on
@@ -93,9 +90,9 @@ const SelectedActionsTable: React.FC<SelectedActionsTableProps> = ({
                                 <td className="px-4 py-2 text-center">
                                     <button
                                         onClick={() => onRemoveAction(action)}
-                                        className="bg-red-600 text-white px-2 py-1 rounded"
+                                        className="text-gray-400 hover:text-red-500 transition-colors"
                                     >
-                                        Remove
+                                        <X className="h-4 w-4" />
                                     </button>
                                 </td>
                             </tr>
@@ -126,14 +123,12 @@ const UnselectedActionsTable: React.FC<UnselectedActionsTableProps> = ({ actions
     const sortedCategories = Object.keys(grouped).sort();
 
     return (
-        <table className="min-w-full rounded overflow-hidden bg-gray-50 dark:bg-gray-800 mb-8">
+        <table className="w-full rounded overflow-hidden bg-gray-50 dark:bg-gray-800">
             <thead>
                 <tr className="border-b border-gray-200 dark:border-gray-700">
                     <th className="px-4 py-2 text-left">Action</th>
-                    <th className="px-4 py-2 text-left">ID</th>
-                    <th className="px-4 py-2 text-left">Category</th>
                     <th className="px-4 py-2 text-left">Intent</th>
-                    <th className="px-4 py-2 text-center">Add</th>
+                    <th className="w-12"></th>
                 </tr>
             </thead>
             <tbody>
@@ -141,7 +136,7 @@ const UnselectedActionsTable: React.FC<UnselectedActionsTableProps> = ({ actions
                     <React.Fragment key={cat}>
                         <tr>
                             <td
-                                colSpan={5}
+                                colSpan={3}
                                 className="px-4 py-2 font-bold text-gray-900 dark:text-gray-100 bg-gray-200 dark:bg-gray-700"
                             >
                                 {cat}
@@ -156,20 +151,14 @@ const UnselectedActionsTable: React.FC<UnselectedActionsTableProps> = ({ actions
                                     {action.action_name || "N/A"}
                                 </td>
                                 <td className="px-4 py-2 text-gray-700 dark:text-gray-300">
-                                    {action.action_id || "N/A"}
-                                </td>
-                                <td className="px-4 py-2 text-gray-700 dark:text-gray-300">
-                                    {action.category_name || "N/A"}
-                                </td>
-                                <td className="px-4 py-2 text-gray-700 dark:text-gray-300">
                                     {action.intent || "N/A"}
                                 </td>
                                 <td className="px-4 py-2 text-center">
                                     <button
                                         onClick={() => onAddAction(action)}
-                                        className="bg-green-600 text-white px-2 py-1 rounded"
+                                        className="text-gray-400 hover:text-green-500 transition-colors"
                                     >
-                                        Add
+                                        <Plus className="h-4 w-4" />
                                     </button>
                                 </td>
                             </tr>

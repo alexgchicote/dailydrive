@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import ActionsCalendar from "@/components/actions-calendar";
 import DayActionsDepth from "@/components/day-action-depth";
-import { SupabaseUserHistoryResponse, UserHistoryDay, DayKpi, UserHistoryLogEntry } from "@/types";
+import { UserHistoryDay, DayKpi, UserHistoryLogEntry } from "@/types";
 import JournalEditor from '@/components/journal-editor';
 import { JSONContent } from '@tiptap/react';
 import { ValueChart } from "@/components/value-chart";

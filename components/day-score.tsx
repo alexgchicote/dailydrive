@@ -94,20 +94,7 @@ export function DayScore({ dayScore }: DayScoreProps) {
             />
           </PolarRadiusAxis>
 
-          {/* Average score bar (inner) */}
-          <RadialBar
-            dataKey="averageScoreFill"
-            stackId="b"
-            opacity={0}
-          />
-          <RadialBar
-            dataKey="averageScore"
-            stackId="b"
-            cornerRadius={5}
-            fill={averageScoreColor}
-            className="stroke-transparent stroke-1"
-            
-          />
+          
           
           {/* Main score bar (outer) */}
           <RadialBar
