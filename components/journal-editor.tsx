@@ -8,6 +8,7 @@ import { TextSelection } from 'prosemirror-state';
 import { createClient } from '@/utils/supabase/client';
 import isEqual from 'lodash/isEqual';
 import Placeholder from '@tiptap/extension-placeholder';
+import { formatDateHeader } from '@/utils/utils';
 
 interface JournalEditorProps {
     userId: string;
@@ -274,6 +275,45 @@ export default function JournalEditor({
 
     return (
         <div>
+            {/* Journal Header */}
+            <div className="mb-4">
+                <h2 className="text-xl font-semibold">Journal Entry for: {formatDateHeader(date)}</h2>
+            </div>
+
+            {/* Save Controls - Moved to top */}
+            <div className="flex justify-between items-center mb-4">
+                <button
+                    onClick={saveJournalEntry}
+                    disabled={isSaving || savedStatus === 'saved' || (editor?.isEmpty && !hasJournalEntry)}
+                    className={`px-3 py-1.5 rounded text-sm font-medium ${isSaving
+                        ? 'bg-gray-300 text-gray-600 dark:bg-gray-700 dark:text-gray-400 cursor-not-allowed'
+                        : savedStatus === 'saved' || (editor?.isEmpty && !hasJournalEntry)
+                            ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300 cursor-default'
+                            : 'bg-blue-600 text-white hover:bg-blue-500 dark:bg-blue-700 dark:hover:bg-blue-600'
+                        }`}
+                    type="button"
+                >
+                    {isSaving 
+                        ? 'Saving...' 
+                        : savedStatus === 'saved' || (editor?.isEmpty && !hasJournalEntry)
+                            ? 'Saved' 
+                            : 'Save'
+                    }
+                </button>
+                <div className="flex items-center gap-2">
+                    {savedStatus === 'error' && (
+                        <span className="text-red-600 dark:text-red-400 text-sm">
+                            Error saving. Please try again.
+                        </span>
+                    )}
+                    {savedStatus === 'unsaved' && (
+                        <span className="text-amber-600 dark:text-amber-400 text-sm">
+                            Unsaved changes
+                        </span>
+                    )}
+                </div>
+            </div>
+
             <div className="border rounded-lg border-zinc-800 dark:border-zinc-600 mb-4 bg-white dark:bg-gray-800">
                 <BubbleMenu
                     editor={editor}
@@ -329,31 +369,6 @@ export default function JournalEditor({
                 <EditorContent editor={editor} className="p-4" />
             </div>
 
-            <div className="flex justify-between items-center">
-                <button
-                    onClick={saveJournalEntry}
-                    disabled={isSaving || savedStatus === 'saved' || (editor?.isEmpty && !hasJournalEntry)}
-                    className={`px-3 py-1.5 rounded text-sm font-medium ${isSaving
-                        ? 'bg-gray-300 text-gray-600 dark:bg-gray-700 dark:text-gray-400 cursor-not-allowed'
-                        : savedStatus === 'saved' || (editor?.isEmpty && !hasJournalEntry)
-                            ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300 cursor-default'
-                            : 'bg-blue-600 text-white hover:bg-blue-500 dark:bg-blue-700 dark:hover:bg-blue-600'
-                        }`}
-                    type="button"
-                >
-                    {isSaving ? 'Saving...' : savedStatus === 'saved' ? 'Saved' : 'Save'}
-                </button>
-                {savedStatus === 'error' && (
-                    <span className="text-red-600 dark:text-red-400 text-sm">
-                        Error saving. Please try again.
-                    </span>
-                )}
-                {savedStatus === 'unsaved' && (
-                    <span className="text-amber-600 dark:text-amber-400 text-sm">
-                        Unsaved changes
-                    </span>
-                )}
-            </div>
             <style jsx global>{`
                 .ProseMirror {
                     min-height: 150px;

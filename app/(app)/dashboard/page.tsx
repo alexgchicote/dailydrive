@@ -10,6 +10,7 @@ import JournalEditor from '@/components/journal-editor';
 import { JSONContent } from '@tiptap/react';
 import { ValueChart } from "@/components/value-chart";
 import DayView from "@/components/day-view";
+import { formatDateHeader } from "@/utils/utils";
 
 const DashboardPage = () => {
   const router = useRouter();
@@ -219,25 +220,6 @@ const DashboardPage = () => {
   // Conditionally render loading state without skipping hook calls.
   if (loading || !userId) return <div>Loading...</div>;
 
-  const formatDateHeader = (dateString: string) => {
-    const date = new Date(dateString);
-
-    // Get weekday name
-    const weekday = date.toLocaleDateString('en-US', { weekday: 'long' });
-
-    // Get day without leading zero
-    const day = date.getDate();
-
-    // Get month abbreviated name
-    const month = date.toLocaleDateString('en-US', { month: 'short' });
-
-    // Get full year
-    const year = date.getFullYear();
-
-    return `${weekday}, ${day} ${month} ${year}`;
-  };
-
-
   // this is temporary becaus I'll remove it when I remove day actions depth
   const dayInfo = userHistory.find((day) => day.log_date === selectedDate);
   const dayActions = dayInfo?.logs || []
@@ -342,19 +324,6 @@ const DashboardPage = () => {
         >
           <div className="w-full max-w-3xl mx-auto">
             <div className="flex flex-col gap-4 px-4">
-              <div className="flex justify-between items-center">
-                <h2 className="text-xl font-semibold">Journal Entry for: </h2>
-                <div className="flex items-center gap-2">
-                  <input
-                    id="journal-date"
-                    type="date"
-                    value={journalDate}
-                    onChange={(e) => setJournalDate(e.target.value)}
-                    className="border border-gray-300 dark:border-gray-700 rounded px-2 py-1 text-sm bg-white dark:bg-gray-800"
-                  />
-                </div>
-              </div>
-
               {userId && journalDate && (
                 <JournalEditor
                   userId={userId}
