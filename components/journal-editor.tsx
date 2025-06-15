@@ -14,12 +14,14 @@ interface JournalEditorProps {
     userId: string;
     date: string;
     onSave?: (content: JSONContent) => void;
+    isConstrained?: boolean;
 }
 
 export default function JournalEditor({ 
     userId, 
     date, 
-    onSave 
+    onSave,
+    isConstrained = false
 }: JournalEditorProps) {
     const [isSaving, setIsSaving] = useState(false);
     const [savedStatus, setSavedStatus] = useState<'saved' | 'unsaved' | 'error' | null>(null);
@@ -39,6 +41,11 @@ export default function JournalEditor({
             }),
         ],
         content: '',
+        editorProps: {
+            attributes: {
+                class: isConstrained ? 'constrained' : '',
+            },
+        },
         onUpdate: ({ editor }) => {
             if (!initialContent && editor.isEmpty) {
                 setSavedStatus(null);
@@ -57,7 +64,7 @@ export default function JournalEditor({
                 setSavedStatus('unsaved');
             }
         }
-    });
+    }, [isConstrained]);
 
     // Fetch existing journal entry when the component mounts or date changes
     useEffect(() => {
@@ -274,7 +281,7 @@ export default function JournalEditor({
     const activeCategory = editor.isActive('label') ? (editor.getAttributes('label') as { category?: string }).category : null;
 
     return (
-        <div>
+        <div className={isConstrained ? 'h-full flex flex-col' : ''}>
             {/* Journal Header */}
             <div className="mb-4">
                 <h2 className="text-xl font-semibold">Journal Entry for: {formatDateHeader(date)}</h2>
@@ -314,7 +321,7 @@ export default function JournalEditor({
                 </div>
             </div>
 
-            <div className="border rounded-lg border-zinc-800 dark:border-zinc-600 mb-4 bg-white dark:bg-gray-800">
+            <div className={`border rounded-lg border-zinc-800 dark:border-zinc-600 bg-white dark:bg-gray-800 ${isConstrained ? 'flex-1 flex flex-col overflow-hidden' : ''}`}>
                 <BubbleMenu
                     editor={editor}
                     tippyOptions={{
@@ -366,7 +373,7 @@ export default function JournalEditor({
                         )}
                     </div>
                 </BubbleMenu>
-                <EditorContent editor={editor} className="p-4" />
+                <EditorContent editor={editor} className={`p-4 ${isConstrained ? 'flex-1 overflow-y-auto' : ''}`} />
             </div>
 
             <style jsx global>{`
@@ -374,6 +381,12 @@ export default function JournalEditor({
                     min-height: 150px;
                     outline: none;
                     padding: 0.5em;
+                }
+                
+                /* When constrained, allow ProseMirror to scroll */
+                .ProseMirror.constrained {
+                    min-height: 0;
+                    height: 100%;
                 }
                 
                 /* Add direct text color control for light/dark modes */

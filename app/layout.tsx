@@ -13,8 +13,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="flex flex-col min-h-screen">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <main className="flex-1 flex flex-col">
-            {/* Content wrapper grows to fill space */}
-            <div className="flex-1 w-full flex flex-col gap-20">
+            {/* Content wrapper grows to fill space with reduced gap */}
+            <div className="flex-1 w-full flex flex-col gap-10 lg:gap-20">
               {children}
             </div>
           </main>

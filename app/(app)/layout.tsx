@@ -16,7 +16,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <div>
       {/* {Nav bar} */}
       <nav className="w-full flex justify-center border-b border-gray-300 dark:border-white/10 h-16">
-        <div className="w-full max-w-6xl flex justify-between items-center p-3 px-5 text-sm">
+        <div className="w-full max-w-7xl flex justify-between items-center p-3 px-5 text-sm">
           <div className="flex gap-5 items-center font-semibold">
             <Link href={"/"}>dailydrive</Link>
           </div>
@@ -26,8 +26,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
         </div>
       </nav>
-      {/* Added mx-auto to center this container and increased the available width */}
-      <div className="flex flex-col gap-20 max-w-6xl p-5 mx-auto">
+      {/* Minimal padding for maximum component space */}
+      <div className="flex flex-col gap-20 max-w-7xl p-1 md:p-2 lg:p-3 mx-auto">
         {children}
       </div>
     </div>

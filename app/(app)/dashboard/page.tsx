@@ -1,16 +1,15 @@
 "use client"; // This is a client component
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import ActionsCalendar from "@/components/actions-calendar";
-import DayActionsDepth from "@/components/day-action-depth";
 import { UserHistoryDay, DayKpi, UserHistoryLogEntry } from "@/types";
 import JournalEditor from '@/components/journal-editor';
 import { JSONContent } from '@tiptap/react';
 import { ValueChart } from "@/components/value-chart";
 import DayView from "@/components/day-view";
-import { formatDateHeader } from "@/utils/utils";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const DashboardPage = () => {
   const router = useRouter();
@@ -29,6 +28,42 @@ const DashboardPage = () => {
   const [journalDate, setJournalDate] = useState<string>(
     new Date().toISOString().split('T')[0]
   );
+
+  // Track the active date
+  const [activeDate, setActiveDate] = useState<string | null>(null);
+
+  // Filter state for calendar
+  const [calendarFilter, setCalendarFilter] = useState<string>("All Actions");
+
+  // Responsive breakpoint states
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Ref for Day View section to enable scrolling
+  const dayViewRef = useRef<HTMLDivElement>(null);
+
+  // Check if we're on mobile
+  useEffect(() => {
+    const checkBreakpoints = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkBreakpoints();
+    window.addEventListener('resize', checkBreakpoints);
+    
+    return () => window.removeEventListener('resize', checkBreakpoints);
+  }, []);
+
+  // Get distinct actions for calendar filter
+  const distinctActions: string[] = [
+    "All Actions",
+    ...Array.from(
+      new Set(
+        userHistory.flatMap((day) =>
+          day.logs.map((log) => log.action_name).filter(Boolean)
+        )
+      )
+    ),
+  ];
 
   // Functions for fetching user data
   const fetchSelectedActions = async (uid: string) => {
@@ -64,20 +99,18 @@ const DashboardPage = () => {
 
       const flatData: UserHistoryLogEntry[] = data.map((row: any) => ({
         selected_action_id: row.selected_action_id,
-        group_category: row.group_category,
-        action_name: row.actions_list?.action_name,
-        intent: row.actions_list?.intent,
-        category_id: row.actions_list?.actions_categories?.category_id,
-        category_name: row.actions_list?.actions_categories?.category_name,
-        status: row.daily_actions_log?.[0]?.status ?? null, // ← FIX HERE
-        notes: row.daily_actions_log?.[0]?.notes,
-        outcome: row.daily_actions_log?.[0]?.outcome
+        status: row.daily_actions_log?.[0]?.status ?? null,
+        outcome: String(row.daily_actions_log?.[0]?.outcome),
+        notes: String(row.daily_actions_log?.[0]?.notes || ''),
+        action_name: String(row.actions_list?.action_name || ''),
+        intent: row.actions_list?.intent as "engage" | "avoid",
+        category_id: Number(row.actions_list?.actions_categories?.category_id),
+        category_name: String(row.actions_list?.actions_categories?.category_name || ''),
+        group_category: Boolean(row.group_category)
       }));
       setSelectedActions(flatData || []);
     }
   };
-
-
 
   const fetchUserHistory = async (uid: string): Promise<void> => {
     try {
@@ -126,7 +159,7 @@ const DashboardPage = () => {
         num_engage_actions_negative: Number(day.num_engage_actions_negative),
         num_avoid_actions_positive: Number(day.num_avoid_actions_positive),
         num_avoid_actions_negative: Number(day.num_avoid_actions_negative),
-        logs: (day.daily_actions_log || []).map(log => {
+        logs: (day.daily_actions_log || []).map((log: any) => {
           const selectedAction = ((log.selected_actions || {}) as unknown) as {
             group_category: boolean;
             actions_list: {
@@ -160,6 +193,7 @@ const DashboardPage = () => {
       console.error("Unexpected error in fetchUserHistory:", err);
     }
   };
+
   // Load the Stock price kpi
   const [kpi, setKpi] = useState<DayKpi[]>([]);
 
@@ -209,6 +243,19 @@ const DashboardPage = () => {
   const handleDateClick = (date: string) => {
     setSelectedDate(date);
     setJournalDate(date); // Also update the journal date when a date is clicked
+    
+    // On mobile, scroll to Day View if it's not fully visible
+    if (isMobile && dayViewRef.current) {
+      const rect = dayViewRef.current.getBoundingClientRect();
+      const isFullyVisible = rect.top >= 0 && rect.bottom <= window.innerHeight;
+      
+      if (!isFullyVisible) {
+        dayViewRef.current.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'start' 
+        });
+      }
+    }
   };
 
   // Handle journal content saved
@@ -220,73 +267,56 @@ const DashboardPage = () => {
   // Conditionally render loading state without skipping hook calls.
   if (loading || !userId) return <div>Loading...</div>;
 
-  // this is temporary becaus I'll remove it when I remove day actions depth
-  const dayInfo = userHistory.find((day) => day.log_date === selectedDate);
-  const dayActions = dayInfo?.logs || []
-
   return (
-    <div className="p-8">
-      {/* Dashboard Header */}
-      <header className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold">Dashboard</h1>
-        </div>
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => router.push("/selected-actions")}
-            className="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg"
-          >
-            {selectedActions.length < 1
-              ? "Add Actions"
-              : `Edit Actions (${selectedActions.length})`}
-          </button>
-        </div>
-      </header>
+    <>
+      <div className="text-center">
+        <h1 className="text-2xl lg:text-4xl font-bold">Daily Drive Dashboard</h1>
+      </div>
 
       {/* Responsive Grid */}
-      <div
-        className="
-          grid grid-cols-1 gap-8 
-          md:grid-cols-2 md:grid-rows-[34rem_34rem_34rem]
-          lg:grid-cols-3 lg:grid-rows-[34rem_34rem]
-
-        "
-      >
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-[320px_320px] md:justify-center md:gap-4 xl:grid-cols-[320px_320px_1fr] xl:justify-start xl:gap-6">
         {/* Calendar Section */}
-        <section
-          className="
-            border rounded-lg border-zinc-800 dark:border-zinc-600
-            p-4
-            min-w-[300px]
-            lg:h-full
-            md:row-start-1 md:col-start-1 md:col-span-1
-            lg:col-span-1
-          "
-        >
-          <h2 className="text-xl font-semibold">Calendar</h2>
-          <div className="flex-none border-b h-80">
-            <ActionsCalendar
-              userHistory={userHistory}
-              handleDateClick={handleDateClick}
-            />
-          </div>
-          <div className="flex-none py-4 h-40">
-            <ValueChart
-              userHistory={userHistory}
-              kpi={kpi}
-              selectedDate={selectedDate}
-            />
-          </div>
-        </section>
+        <Card className="w-80 mx-auto md:mx-0 h-[500px]">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg lg:text-xl">Calendar</CardTitle>
+              <select
+                value={calendarFilter}
+                onChange={(e) => setCalendarFilter(e.target.value)}
+                className="text-xs lg:text-sm p-1 border rounded bg-gray-50 text-gray-900 dark:bg-gray-800 dark:text-gray-100"
+              >
+                {distinctActions.map((actionName) => (
+                  <option key={actionName} value={actionName}>
+                    {actionName}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0 px-3 lg:px-4 h-[calc(100%-5rem)] flex flex-col">
+            <div className="flex flex-col h-full">
+              <div className="flex-1 mb-4 overflow-hidden">
+                <ActionsCalendar
+                  userHistory={userHistory}
+                  handleDateClick={handleDateClick}
+                  filterAction={calendarFilter}
+                />
+              </div>
+              <div className="h-28 flex-shrink-0 px-4">
+                <ValueChart
+                  userHistory={userHistory}
+                  kpi={kpi}
+                  selectedDate={selectedDate}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-        {/* Day View Section */}
-        <section
-          className="
-            flex flex-col
-            min-w-[300px]
-            md:row-start-1 md:col-start-2 md:col-span-1
-            lg:row-start-1 lg:col-start-2 lg:col-span-1 lg:h-full 
-          "
+        {/* Day View Section - Shown on mobile right after calendar, hidden on medium+ in this position */}
+        <Card 
+          ref={dayViewRef}
+          className="md:hidden w-80 mx-auto h-[500px] overflow-hidden"
         >
           <DayView
             selectedDate={selectedDate}
@@ -294,48 +324,39 @@ const DashboardPage = () => {
             userHistory={userHistory}
             userId={userId}
           />
-        </section>
-        <section
-          className="
-            border rounded-lg border-zinc-800 dark:border-zinc-600
-            p-4
-            min-w-[300px]
-            flex flex-col
-            md:row-start-2 md:col-start-1 md:col-span-1
-            lg:row-start-1 lg:col-start-3 lg:col-span-1 lg:h-full 
-          "
-        >
-          <h2 className="text-xl font-semibold mb-4">
-            {formatDateHeader(selectedDate)}
-          </h2>
-          <DayActionsDepth dayActions={dayActions} />
-        </section>
+        </Card>
+
+        {/* Day View Section - Hidden on mobile, shown on medium+ screens */}
+        <Card className="hidden md:block w-80 h-[500px] overflow-hidden">
+          <DayView
+            selectedDate={selectedDate}
+            selectedActions={selectedActions}
+            userHistory={userHistory}
+            userId={userId}
+          />
+        </Card>
 
         {/* Journal Editor Section */}
-        <div
-          className="
-            overflow-auto
-            border rounded-lg border-zinc-800 dark:border-zinc-600
-            p-4
-            min-w-[300px]
-            md:row-start-2 md:col-start-2 md:col-span-1
-            lg:row-start-2 lg:col-start-1 lg:col-span-2
-          "
-        >
-          <div className="w-full max-w-3xl mx-auto">
-            <div className="flex flex-col gap-4 px-4">
-              {userId && journalDate && (
-                <JournalEditor
-                  userId={userId}
-                  date={journalDate}
-                  onSave={handleJournalSaved}
-                />
-              )}
+        <Card className="w-80 mx-auto md:w-full md:mx-0 md:col-span-2 xl:col-span-1 h-[500px] overflow-hidden">
+          <CardContent className="p-3 lg:p-4 h-full">
+            <div className="w-full h-full">
+              <div className="flex flex-col gap-4 h-full">
+                {userId && journalDate && (
+                  <div className="h-full">
+                    <JournalEditor
+                      userId={userId}
+                      date={journalDate}
+                      onSave={handleJournalSaved}
+                      isConstrained={true}
+                    />
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
-    </div>
+    </>
   );
 };
 

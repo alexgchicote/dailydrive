@@ -33,7 +33,7 @@ export function DayView({ selectedDate, selectedActions, userHistory, userId }: 
     const logActions = dayInfo ? dayInfo.logs : selectedActions; // TODO: change this to be the selected actions on the day selected, not hard coded to today.
 
     return (
-        <>
+        <div className="h-full w-full overflow-hidden">
             {shouldBeInEditMode ? (
                 <DailyLog
                     userId={userId}
@@ -48,7 +48,7 @@ export function DayView({ selectedDate, selectedActions, userHistory, userId }: 
                     onEdit={toggleEditMode}
                 />
             )}
-        </>
+        </div>
     );
 }
 

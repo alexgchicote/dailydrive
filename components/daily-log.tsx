@@ -3,7 +3,7 @@
 import { useState, useEffect, Fragment } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { Circle, CircleCheck, CircleX, Pencil, PencilOff, Save, X, Plus, Minus } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+
 import { UserHistoryLogEntry } from "@/types";
 import { formatDateHeader } from "@/utils/utils";
 
@@ -123,7 +123,7 @@ export function DailyLog({ userId, selectedDate, selectedActions, onClose }: Dai
                 parentStatuses[catId] = false;
             } else {
                 const anyDone = groupableActions.some((action) => doneStatus[action.selected_action_id]);
-                parentStatuses[catId] = anyDone;
+            parentStatuses[catId] = anyDone;
             }
         });
 
@@ -264,14 +264,14 @@ export function DailyLog({ userId, selectedDate, selectedActions, onClose }: Dai
     // Show a loading state until the initial state is set up
     if (!isLoaded) {
         return (
-            <Card className="h-full flex flex-col">
-                <CardHeader className="pb-0">
-                    <CardTitle>{formatDateHeader(selectedDate)}</CardTitle>
-                </CardHeader>
-                <CardContent className="h-full flex flex-col overflow-hidden pt-4">
+            <div className="h-full flex flex-col">
+                <div className="pb-0 p-6">
+                    <h3 className="text-lg font-semibold leading-none tracking-tight">{formatDateHeader(selectedDate)}</h3>
+                </div>
+                <div className="h-full flex flex-col overflow-hidden pt-4 p-6 pt-0">
                     <div>Loading...</div>
-                </CardContent>
-            </Card>
+                </div>
+            </div>
         );
     }
 
@@ -285,9 +285,9 @@ export function DailyLog({ userId, selectedDate, selectedActions, onClose }: Dai
         }));
 
     return (
-        <Card className="h-full flex flex-col">
-            <CardHeader className="pb-0 flex flex-row justify-between items-center">
-                <CardTitle>{formatDateHeader(selectedDate)}</CardTitle>
+        <div className="h-full flex flex-col">
+            <div className="pb-0 flex flex-row justify-between items-center flex-shrink-0 p-6">
+                <h3 className="text-lg font-semibold leading-none tracking-tight">{formatDateHeader(selectedDate)}</h3>
                 <div className="flex space-x-2">
                     {/* Save button */}
                     <button
@@ -304,9 +304,9 @@ export function DailyLog({ userId, selectedDate, selectedActions, onClose }: Dai
                         <X className="h-5 w-5" />
                     </button>
                 </div>
-            </CardHeader>
-            <CardContent className="h-full flex flex-col overflow-hidden pt-4">
-                <div className="flex-grow overflow-y-auto max-h-full">
+            </div>
+            <div className="flex-1 flex flex-col overflow-hidden pt-4 min-h-0 p-6 pt-0">
+                <div className="flex-1 overflow-y-auto min-h-0">
                     {sortedGroupedActions.map((group) => (
                         <div
                             key={group.category}
@@ -334,8 +334,8 @@ export function DailyLog({ userId, selectedDate, selectedActions, onClose }: Dai
                         </div>
                     ))}
                 </div>
-            </CardContent>
-        </Card>
+            </div>
+        </div>
     );
 }
 

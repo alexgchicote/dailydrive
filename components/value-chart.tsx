@@ -133,43 +133,43 @@ export function ValueChart({ userHistory, kpi, selectedDate }: ChartProps) {
   };
 
   return (
-    <ResponsiveContainer width="100%" height="100%">
-      <ChartContainer config={chartConfig} className="h-full w-full">
-        <LineChart
-          accessibilityLayer
-          data={kpiWithFormattedDate}
-          margin={{
-            top: 5,
-            left: 4,
-            right: 4,
-            bottom: 5
-          }}
-          width={500}
-          height={100}
-        >
-          <CartesianGrid vertical={false} />
-          <XAxis
-            dataKey="formatted_date"
-            tickLine={true}
-            axisLine={true}
-            tickMargin={8}
-            interval="preserveStartEnd"
-            ticks={firstDayFormatted}
-          />
-          <ChartTooltip
-            cursor={false}
-            content={<ChartTooltipContent indicator="line"/>}
-          />
-          <Line
-            dataKey="cumulative_gain"
-            type="linear"
-            stroke="hsl(var(--blue-500))" // Use CSS variable
-            strokeWidth={2}
-            dot={renderSelectedDayDot}
-            activeDot={renderActiveDot}
-          />
-        </LineChart>
-      </ChartContainer>
-    </ResponsiveContainer>
+    <div className="w-full h-full min-h-[96px] min-w-[200px]">
+      <ResponsiveContainer width="100%" height="100%">
+        <ChartContainer config={chartConfig} className="h-full w-full">
+          <LineChart
+            accessibilityLayer
+            data={kpiWithFormattedDate}
+            margin={{
+              top: 5,
+              left: 4,
+              right: 4,
+              bottom: 5
+            }}
+          >
+            <CartesianGrid vertical={false} />
+            <XAxis
+              dataKey="formatted_date"
+              tickLine={true}
+              axisLine={true}
+              tickMargin={8}
+              interval="preserveStartEnd"
+              ticks={firstDayFormatted}
+            />
+            <ChartTooltip
+              cursor={false}
+              content={<ChartTooltipContent indicator="line"/>}
+            />
+            <Line
+              dataKey="cumulative_gain"
+              type="linear"
+              stroke="hsl(var(--blue-500))" // Use CSS variable
+              strokeWidth={2}
+              dot={renderSelectedDayDot}
+              activeDot={renderActiveDot}
+            />
+          </LineChart>
+        </ChartContainer>
+      </ResponsiveContainer>
+    </div>
   )
 }

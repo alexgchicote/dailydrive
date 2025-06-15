@@ -3,7 +3,7 @@ import React from "react";
 import { UserHistoryDay } from "@/types";
 import DayActions from "./day-actions";
 import DayScore from "./day-score";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+
 import { ActionsWeek } from "./week-actions";
 import { Pencil } from "lucide-react";
 
@@ -39,14 +39,14 @@ export function Deepdive({ selectedDate, userHistory, onEdit }: DeepdiveProps) {
     const dayInfo = userHistory.find((day) => day.log_date === selectedDate);
     if (!dayInfo) { // TODO: here also add if the toggle
         return (
-              <Card className="h-full">
-                <CardHeader>
-                  <CardTitle>{formatDateHeader(selectedDate)}</CardTitle>
-                </CardHeader>
-                <CardContent>
+              <div className="h-full flex flex-col">
+                <div className="pb-0 flex flex-row justify-between items-center flex-shrink-0 p-6">
+                  <h3 className="text-lg font-semibold leading-none tracking-tight">{formatDateHeader(selectedDate)}</h3>
+                </div>
+                <div className="p-6 pt-0">
                   No logs available for {selectedDate}. Start logging your actions!
-                </CardContent>
-              </Card>
+                </div>
+              </div>
         );
     }
 
@@ -57,17 +57,17 @@ export function Deepdive({ selectedDate, userHistory, onEdit }: DeepdiveProps) {
     const totalActions = positiveActions + negativeActions;
 
     return (
-        <Card className="h-full flex flex-col">
-            <CardHeader className="pb-0 flex flex-row justify-between items-center">
-                <CardTitle>{formatDateHeader(selectedDate)}</CardTitle>
+        <div className="h-full flex flex-col">
+            <div className="pb-0 flex flex-row justify-between items-center flex-shrink-0 p-6">
+                <h3 className="text-lg font-semibold leading-none tracking-tight">{formatDateHeader(selectedDate)}</h3>
                 <button
                     onClick={onEdit}
                     className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded flex items-center justify-center transition-colors"
                 >
                     <Pencil className="h-5 w-5" />
                 </button>
-            </CardHeader>
-            <CardContent className="h-full flex flex-col overflow-hidden pt-4">
+            </div>
+            <div className="flex-1 flex flex-col overflow-hidden pt-4 min-h-0 p-6 pt-0">
                 <div className="flex-none grid grid-cols-2 border-b h-[5rem]">
                     <div className="flex items-center justify-center h-[5rem]">
                         <DayScore dayScore={dayScore} />
@@ -99,8 +99,8 @@ export function Deepdive({ selectedDate, userHistory, onEdit }: DeepdiveProps) {
                         </div>
                     )}
                 </div>
-            </CardContent>
-        </Card>
+            </div>
+        </div>
     );
 }
 
