@@ -305,7 +305,7 @@ export function DailyLog({ userId, selectedDate, selectedActions, onClose }: Dai
                     </button>
                 </div>
             </div>
-            <div className="flex-1 flex flex-col overflow-hidden pt-4 min-h-0 p-6 pt-0">
+            <div className="flex-1 flex flex-col overflow-hidden pt-4 min-h-0 p-6">
                 <div className="flex-1 overflow-y-auto min-h-0">
                     {sortedGroupedActions.map((group) => (
                         <div

@@ -67,7 +67,7 @@ export function Deepdive({ selectedDate, userHistory, onEdit }: DeepdiveProps) {
                     <Pencil className="h-5 w-5" />
                 </button>
             </div>
-            <div className="flex-1 flex flex-col overflow-hidden pt-4 min-h-0 p-6 pt-0">
+            <div className="flex-1 flex flex-col overflow-hidden pt-4 min-h-0 p-6">
                 <div className="flex-none grid grid-cols-2 border-b h-[5rem]">
                     <div className="flex items-center justify-center h-[5rem]">
                         <DayScore dayScore={dayScore} />
