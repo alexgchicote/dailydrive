@@ -10,6 +10,7 @@ import { JSONContent } from '@tiptap/react';
 import { ValueChart } from "@/components/value-chart";
 import DayView from "@/components/day-view";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Pencil } from "lucide-react";
 
 const DashboardPage = () => {
   const router = useRouter();
@@ -269,8 +270,31 @@ const DashboardPage = () => {
 
   return (
     <>
-      <div className="text-center">
-        <h1 className="text-2xl lg:text-4xl font-bold">Daily Drive Dashboard</h1>
+      {/* Dashboard Header - exactly matches responsive grid boundaries */}
+      <div className="w-80 mx-auto md:w-[656px] md:mx-auto xl:w-full xl:mx-0">
+        <header className="flex justify-between items-center my-6">
+          <div className="text-left flex-1">
+            <h1 className="text-xl md:text-2xl xl:text-4xl font-bold">Daily Drive Dashboard</h1>
+          </div>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => router.push("/selected-actions")}
+              className="bg-purple-600 hover:bg-purple-500 text-white p-2 md:px-3 md:py-2 rounded-lg flex items-center gap-2 text-sm xl:text-base"
+              title={selectedActions.length < 1 ? "Add Actions" : "Edit Actions"}
+            >
+              <Pencil className="h-4 w-4" />
+              <span className="hidden md:inline">
+                {selectedActions.length < 1 ? "Add Actions" : "Edit Actions"}
+              </span>
+              {selectedActions.length > 0 && (
+                <span className="md:hidden">({selectedActions.length})</span>
+              )}
+              {selectedActions.length > 0 && (
+                <span className="hidden md:inline">({selectedActions.length})</span>
+              )}
+            </button>
+          </div>
+        </header>
       </div>
 
       {/* Responsive Grid */}

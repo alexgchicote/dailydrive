@@ -3,6 +3,7 @@ import React from "react";
 import { UserHistoryDay } from "@/types";
 import DayActions from "./day-actions";
 import DayScore from "./day-score";
+import { formatDateHeader } from "@/utils/utils";
 
 import { ActionsWeek } from "./week-actions";
 import { Pencil } from "lucide-react";
@@ -14,26 +15,6 @@ interface DeepdiveProps {
 }
 
 export function Deepdive({ selectedDate, userHistory, onEdit }: DeepdiveProps) {
-    // Format date header function
-    const formatDateHeader = (dateString: string) => {
-        if (!dateString) return "";
-
-        const date = new Date(dateString);
-
-        // Get weekday name
-        const weekday = date.toLocaleDateString('en-US', { weekday: 'long' });
-
-        // Get day without leading zero
-        const day = date.getDate();
-
-        // Get month abbreviated name
-        const month = date.toLocaleDateString('en-US', { month: 'short' });
-
-        // Get full year
-        const year = date.getFullYear();
-
-        return `${weekday}, ${day} ${month} ${year}`;
-    };
 
     // Find the history record that matches the selected date.
     const dayInfo = userHistory.find((day) => day.log_date === selectedDate);

@@ -27,7 +27,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       </nav>
       {/* Minimal padding for maximum component space */}
-      <div className="flex flex-col gap-20 max-w-7xl p-1 md:p-2 lg:p-3 mx-auto">
+      <div className="flex flex-col gap-6 max-w-7xl p-1 md:p-2 lg:p-3 mx-auto">
         {children}
       </div>
     </div>
