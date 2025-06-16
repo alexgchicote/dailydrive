@@ -268,7 +268,7 @@ export function DailyLog({ userId, selectedDate, selectedActions, onClose }: Dai
                 <div className="pb-0 p-6">
                     <h3 className="text-lg font-semibold leading-none tracking-tight">{formatDateHeader(selectedDate)}</h3>
                 </div>
-                <div className="h-full flex flex-col overflow-hidden pt-4 p-6 pt-0">
+                <div className="h-full flex flex-col overflow-hidden pt-4 p-6">
                     <div>Loading...</div>
                 </div>
             </div>
