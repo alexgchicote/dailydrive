@@ -3,6 +3,8 @@
 import { useState, useEffect, Fragment } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { Circle, CircleCheck, CircleX, Pencil, PencilOff, Save, X, Plus, Minus } from "lucide-react";
+import { toast } from "sonner";
+import { Toaster } from "@/components/ui/sonner";
 
 import { UserHistoryLogEntry } from "@/types";
 import { formatDateHeader } from "@/utils/utils";
@@ -12,9 +14,10 @@ interface DailyLogProps {
     selectedDate: string;
     onClose: () => void;
     selectedActions: UserHistoryLogEntry[];
+    onDataRefresh: () => Promise<void>;
 }
 
-export function DailyLog({ userId, selectedDate, selectedActions, onClose }: DailyLogProps) {
+export function DailyLog({ userId, selectedDate, selectedActions, onClose, onDataRefresh }: DailyLogProps) {
     const supabase = createClient();
 
     // Local state for the selected actions and done toggles.
@@ -132,8 +135,14 @@ export function DailyLog({ userId, selectedDate, selectedActions, onClose }: Dai
 
     // Save the log and then close the form
     const handleSaveAndClose = async () => {
-        await handleSaveLog();
-        onClose();
+        try {
+            await handleSaveLog();
+            await onDataRefresh();
+            onClose();
+        } catch (error) {
+            console.error("Error saving and refreshing data:", error);
+            toast.error("Failed to save log or refresh data");
+        }
     };
 
     // Save the log (in daily_actions_log and user_days)
@@ -232,9 +241,10 @@ export function DailyLog({ userId, selectedDate, selectedActions, onClose }: Dai
 
         if (error) {
             console.error("Error in RPC upsert:", error);
-        } else {
-            alert("Daily log and summary saved successfully!");
+            toast.error("Failed to save daily log");
+            throw error; // Re-throw to be caught by handleSaveAndClose
         }
+        // Success toast will be shown after data refresh completes
     };
 
     // Group selected actions by category.
@@ -286,22 +296,23 @@ export function DailyLog({ userId, selectedDate, selectedActions, onClose }: Dai
 
     return (
         <div className="h-full flex flex-col">
+            <Toaster position="top-center" />
             <div className="pb-0 flex flex-row justify-between items-center flex-shrink-0 p-6">
                 <h3 className="text-lg font-semibold leading-none tracking-tight">{formatDateHeader(selectedDate)}</h3>
                 <div className="flex space-x-2">
                     {/* Save button */}
                     <button
                         onClick={handleSaveAndClose}
-                        className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded flex items-center justify-center transition-colors"
+                        className="bg-green-300/40 dark:bg-green-900/40 hover:bg-green-400/40 dark:hover:bg-green-700/40 text-green-600 dark:text-green-400 p-1.5 rounded-lg flex items-center justify-center transition-colors shadow-sm"
                     >
-                        <Save className="h-5 w-5" />
+                        <Save className="h-4 w-4" />
                     </button>
                     {/* X button to close without saving */}
                     <button
                         onClick={onClose}
-                        className="bg-gray-500 hover:bg-gray-600 text-white p-2 rounded flex items-center justify-center transition-colors"
+                        className="bg-gray-300/40 dark:bg-gray-800/40 hover:bg-gray-300 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 p-1.5 rounded-lg flex items-center justify-center transition-colors shadow-sm"
                     >
-                        <X className="h-5 w-5" />
+                        <X className="h-4 w-4" />
                     </button>
                 </div>
             </div>

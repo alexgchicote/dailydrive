@@ -9,9 +9,10 @@ interface DayViewProps {
     selectedActions: UserHistoryLogEntry[];
     userHistory: UserHistoryDay[];
     userId: string;
+    onDataRefresh: () => Promise<void>;
 }
 
-export function DayView({ selectedDate, selectedActions, userHistory, userId }: DayViewProps) {
+export function DayView({ selectedDate, selectedActions, userHistory, userId, onDataRefresh }: DayViewProps) {
     
     // State to control which view is shown
     const [isEditMode, setIsEditMode] = useState(false);
@@ -40,6 +41,7 @@ export function DayView({ selectedDate, selectedActions, userHistory, userId }: 
                     selectedDate={selectedDate}
                     selectedActions={logActions}
                     onClose={toggleEditMode}
+                    onDataRefresh={onDataRefresh}
                 />
             ) : (
                 <Deepdive

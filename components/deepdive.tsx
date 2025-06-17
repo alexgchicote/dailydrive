@@ -43,9 +43,9 @@ export function Deepdive({ selectedDate, userHistory, onEdit }: DeepdiveProps) {
                 <h3 className="text-lg font-semibold leading-none tracking-tight">{formatDateHeader(selectedDate)}</h3>
                 <button
                     onClick={onEdit}
-                    className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded flex items-center justify-center transition-colors"
+                    className="bg-orange-200/40 dark:bg-orange-900/40 hover:bg-orange-200 dark:hover:bg-orange-900 text-orange-600 dark:text-orange-400 p-1.5 rounded-lg flex items-center justify-center transition-colors shadow-sm"
                 >
-                    <Pencil className="h-5 w-5" />
+                    <Pencil className="h-4 w-4" />
                 </button>
             </div>
             <div className="flex-1 flex flex-col overflow-hidden pt-4 min-h-0 p-6">
@@ -59,7 +59,7 @@ export function Deepdive({ selectedDate, userHistory, onEdit }: DeepdiveProps) {
                             {positiveActions}/{totalActions}
                         </div>
                         <div className="text-xs text-gray-500">
-                            Actions Completed
+                            Completed
                         </div>
                     </div>
                 </div>

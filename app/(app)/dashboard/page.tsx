@@ -265,6 +265,17 @@ const DashboardPage = () => {
     // You could add additional logic here like notifications, etc.
   };
 
+  // Handle data refresh after daily log submission
+  const handleDataRefresh = async () => {
+    if (userId) {
+      await Promise.all([
+        fetchUserHistory(userId),
+        fetchkpi(userId),
+        fetchSelectedActions(userId) // Also refresh selected actions in case they changed
+      ]);
+    }
+  };
+
   // Conditionally render loading state without skipping hook calls.
   if (loading || !userId) return <div>Loading...</div>;
 
@@ -279,7 +290,7 @@ const DashboardPage = () => {
           <div className="flex items-center gap-4">
             <button
               onClick={() => router.push("/selected-actions")}
-              className="bg-purple-600 hover:bg-purple-500 text-white p-2 md:px-3 md:py-2 rounded-lg flex items-center gap-2 text-sm xl:text-base"
+              className="bg-orange-200/40 dark:bg-orange-900/40 hover:bg-orange-200 dark:hover:bg-orange-900 text-orange-600 dark:text-orange-400 p-2 md:px-3 md:py-2 rounded-lg flex items-center gap-2 text-sm xl:text-base"
               title={selectedActions.length < 1 ? "Add Actions" : "Edit Actions"}
             >
               <Pencil className="h-4 w-4" />
@@ -347,6 +358,7 @@ const DashboardPage = () => {
             selectedActions={selectedActions}
             userHistory={userHistory}
             userId={userId}
+            onDataRefresh={handleDataRefresh}
           />
         </Card>
 
@@ -357,6 +369,7 @@ const DashboardPage = () => {
             selectedActions={selectedActions}
             userHistory={userHistory}
             userId={userId}
+            onDataRefresh={handleDataRefresh}
           />
         </Card>
 
