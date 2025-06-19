@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { UserHistoryDay, } from "@/types";
-import { getScoreColor } from "@/utils/utils";
+
 
 // Define a type for a log entry
 interface DayEntry {
@@ -44,33 +44,68 @@ function CalendarDay({
         );
     };
 
-    // Get color for each date based on outcome.
-    const getColorForDate = (date: Date, filterAction: string = "All Actions"): string => {
-        const green = "bg-[hsl(var(--score-green))]";
-        const yellow = "bg-[hsl(var(--score-yellow))]";
-        const red = "bg-[hsl(var(--score-red))]";
-        const gray = "bg-[hsl(var(--score-gray))]";
-        const faintGray = "bg-[hsl(var(--score-faint-gray))]";
+    // Get styling for each date based on outcome.
+    const getDateStyling = (date: Date, filterAction: string = "All Actions"): { bg: string; text: string; activeBorder: string } => {
 
+        const greenDiv = {
+            bg: "bg-green-400/40 dark:bg-green-700/40 hover:bg-green-500/40 dark:hover:bg-green-600/40",
+            text: "text-green-600 dark:text-green-400",
+            activeBorder: "border-green-600 dark:border-green-400",
+        };
+
+        const yellowDiv = {
+            bg: "bg-yellow-400/40 dark:bg-yellow-700/40 hover:bg-yellow-500/40 dark:hover:bg-yellow-600/40",
+            text: "text-yellow-600 dark:text-yellow-400",
+            activeBorder: "border-yellow-600 dark:border-yellow-400"
+        };
+
+        const redDiv = {
+            bg: "bg-red-400/40 dark:bg-red-700/40 hover:bg-red-500/40 dark:hover:bg-red-600/40",
+            text: "text-red-600 dark:text-red-400",
+            activeBorder: "border-red-600 dark:border-red-400"
+        };
+
+        const noLogDiv = {
+            bg: "bg-gray-400/40 dark:bg-gray-700/40 hover:bg-gray-500/40 dark:hover:bg-gray-600/40",
+            text: "text-gray-600 dark:text-gray-400",
+            activeBorder: "border-gray-600 dark:border-gray-400"
+        };
+
+        const futureDiv = {
+            bg: "",
+            text: "text-gray-600 dark:text-gray-400",
+            activeBorder: ""
+        };
+
+        // Future dates
         if (date > today) {
-            return faintGray;
+            return futureDiv;
         }
+
+        // No log data
         if (!log) {
-            return gray;
+            return noLogDiv;;
         }
 
         if (filterAction === "All Actions") {
-            const grade = log.actions_day_grade ?? 0; // Default to 0 if null or undefined
-            return `bg-[${getScoreColor(grade)}]`;
+            const grade = log.actions_day_grade ?? 0;
+            // For all actions, use green/yellow/red based on grade like before
+            if (grade == 1) {
+                return greenDiv;
+            } else if (grade > 0.6) {
+                return yellowDiv;;
+            } else {
+                return redDiv;
+            }
         } else {
             const outcome = (log.outcome ?? "").trim().toLowerCase();
-
+            
             if (outcome === "positive") {
-                return green;
+                return greenDiv;
             } else if (outcome === "neutral") {
-                return yellow;
+                return yellowDiv;
             } else {
-                return red;
+                return redDiv;
             }
         }
     };
@@ -83,10 +118,12 @@ function CalendarDay({
         return `${year}-${month}-${day}`;
     };
 
-    const commonClasses = `w-8 h-8 rounded-md flex items-center justify-center
-    ${getColorForDate(date, filterAction)}
-    ${isActive ? "border-2 border-[hsl(var(--selected-date-highlight))]" : isToday(date) ? "border-2 dark:border-gray-700 border-gray-300" : ""}
-    ${isPastOrToday ? "cursor-pointer hover:bg-blue-300 dark:hover:bg-blue-700" : "cursor-default opacity-50"}`;
+    const styling = getDateStyling(date, filterAction);
+    
+    const commonClasses = `w-8 h-8 rounded-lg flex items-center justify-center text-sm font-medium transition-all duration-200
+    ${styling.bg} ${styling.text}
+    ${isActive ? `border-2 ${styling.activeBorder}` : ""}
+    ${isPastOrToday ? `cursor-pointer` : "cursor-default"}`;
 
     return isPastOrToday ? (
         //  Render a button if date is today or in the past

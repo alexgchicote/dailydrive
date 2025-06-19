@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { Circle, CircleCheck, CircleX } from "lucide-react";
+import { Circle, Check, X } from "lucide-react";
 import { UserHistoryLogEntry } from "@/types";
 
 interface DayActionsProps {
@@ -64,13 +64,21 @@ export function DayActions({dayActions}: DayActionsProps) {
                   action._meta.isFirstInCategory ? 'border-t' : ''
                 } border-zinc-800 dark:border-zinc-600`}>
                   <td className="w-6 px-4 py-2 align-middle">
-                    {action.outcome === "positive" ? (
-                      <CircleCheck className="text-[hsl(var(--score-green))]"/>
-                    ) : action.outcome === "negative" ? (
-                      <CircleX className="text-[hsl(var(--score-red))]" />
-                    ) : (
-                      <Circle className="text-[hsl(var(--score-yellow))]" />
-                    )}
+                    <div className={`p-1 rounded-lg flex items-center justify-center transition-colors shadow-sm ${
+                      action.outcome === "positive" 
+                        ? "bg-green-400/40 dark:bg-green-700/40 text-green-600 dark:text-green-400"
+                        : action.outcome === "negative" 
+                          ? "bg-red-400/40 dark:bg-red-700/40 text-red-600 dark:text-red-400"
+                          : "bg-yellow-400/40 dark:bg-yellow-700/40 text-yellow-600 dark:text-yellow-400"
+                    }`}>
+                      {action.outcome === "positive" ? (
+                        <Check className="h-4 w-4" />
+                      ) : action.outcome === "negative" ? (
+                        <X className="h-4 w-4" />
+                      ) : (
+                        <Circle className="h-4 w-4" />
+                      )}
+                    </div>
                   </td>
                   <td className="text-left py-2 align-middle">{action.action_name}</td>
                 </tr>

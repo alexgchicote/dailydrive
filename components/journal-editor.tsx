@@ -284,7 +284,7 @@ export default function JournalEditor({
         <div className={isConstrained ? 'h-full flex flex-col' : ''}>
             {/* Journal Header */}
             <div className="mb-4">
-                <h2 className="text-xl font-semibold">Journal Entry for: {formatDateHeader(date)}</h2>
+                <h2 className="text-lg font-semibold">Journal Entry for: {formatDateHeader(date)}</h2>
             </div>
 
             {/* Save Controls - Moved to top */}
@@ -295,8 +295,8 @@ export default function JournalEditor({
                     className={`px-3 py-1.5 rounded text-sm font-medium ${isSaving
                         ? 'bg-gray-300 text-gray-600 dark:bg-gray-700 dark:text-gray-400 cursor-not-allowed'
                         : savedStatus === 'saved' || (editor?.isEmpty && !hasJournalEntry)
-                            ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300 cursor-default'
-                            : 'bg-blue-600 text-white hover:bg-blue-500 dark:bg-blue-700 dark:hover:bg-blue-600'
+                            ? 'bg-green-400/40 dark:bg-green-700/40 text-green-600 dark:text-green-400 cursor-default'
+                            : 'bg-purple-400/40 dark:bg-purple-700/40 hover:bg-purple-500/40 dark:hover:bg-purple-600/40 text-purple-600 dark:text-purple-400'
                         }`}
                     type="button"
                 >
@@ -321,7 +321,7 @@ export default function JournalEditor({
                 </div>
             </div>
 
-            <div className={`border rounded-lg border-zinc-800 dark:border-zinc-600 bg-white dark:bg-gray-800 ${isConstrained ? 'flex-1 flex flex-col overflow-hidden' : ''}`}>
+            <div className={`rounded-lg border-zinc-800 dark:border-zinc-600 bg-gray-300/40 dark:bg-gray-800/40 ${isConstrained ? 'flex-1 flex flex-col overflow-hidden' : ''}`}>
                 <BubbleMenu
                     editor={editor}
                     tippyOptions={{

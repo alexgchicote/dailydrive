@@ -43,7 +43,7 @@ export function Deepdive({ selectedDate, userHistory, onEdit }: DeepdiveProps) {
                 <h3 className="text-lg font-semibold leading-none tracking-tight">{formatDateHeader(selectedDate)}</h3>
                 <button
                     onClick={onEdit}
-                    className="bg-orange-200/40 dark:bg-orange-900/40 hover:bg-orange-200 dark:hover:bg-orange-900 text-orange-600 dark:text-orange-400 p-1.5 rounded-lg flex items-center justify-center transition-colors shadow-sm"
+                    className="bg-orange-200/40 dark:bg-orange-800/40 hover:bg-orange-300/40 dark:hover:bg-orange-700/40 text-orange-600 dark:text-orange-400 p-1 rounded-lg flex items-center justify-center transition-colors shadow-sm"
                 >
                     <Pencil className="h-4 w-4" />
                 </button>

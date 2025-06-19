@@ -290,7 +290,7 @@ const DashboardPage = () => {
           <div className="flex items-center gap-4">
             <button
               onClick={() => router.push("/selected-actions")}
-              className="bg-orange-200/40 dark:bg-orange-900/40 hover:bg-orange-200 dark:hover:bg-orange-900 text-orange-600 dark:text-orange-400 p-2 md:px-3 md:py-2 rounded-lg flex items-center gap-2 text-sm xl:text-base"
+              className="bg-orange-200/40 dark:bg-orange-800/40 hover:bg-orange-300/40 dark:hover:bg-orange-700/40 text-orange-600 dark:text-orange-400 p-2 md:px-3 md:py-2 rounded-lg flex items-center gap-2 text-sm xl:text-base"
               title={selectedActions.length < 1 ? "Add Actions" : "Edit Actions"}
             >
               <Pencil className="h-4 w-4" />
@@ -314,7 +314,7 @@ const DashboardPage = () => {
         <Card className="w-80 mx-auto md:mx-0 h-[500px]">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-lg lg:text-xl">Calendar</CardTitle>
+              <CardTitle className="text-lg">Calendar</CardTitle>
               <select
                 value={calendarFilter}
                 onChange={(e) => setCalendarFilter(e.target.value)}

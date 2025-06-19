@@ -7,7 +7,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import { getScoreColor } from "@/utils/utils";
+
 
 // Props for the Chart component
 interface ChartProps {
@@ -51,7 +51,19 @@ export function ValueChart({ userHistory, kpi, selectedDate }: ChartProps) {
       // Find the corresponding user history item to get the score
       const pointData = userHistory.find(day => day.log_date === payloadDateStr);
       const pointScore = pointData ? pointData.actions_day_grade : 0;
-      const pointColor = getScoreColor(pointScore);
+      
+      // Get CSS variables based on score (matching week-actions chart)
+      let fillColor, strokeColor;
+      if (pointScore == 1) {
+        fillColor = "var(--chart-positive)";
+        strokeColor = "var(--chart-positive-stroke)";
+      } else if (pointScore > 0.6) {
+        fillColor = "var(--chart-neutral)";
+        strokeColor = "var(--chart-neutral-stroke)";
+      } else {
+        fillColor = "var(--chart-negative)";
+        strokeColor = "var(--chart-negative-stroke)";
+      }
 
       return (
         <circle
@@ -59,9 +71,9 @@ export function ValueChart({ userHistory, kpi, selectedDate }: ChartProps) {
           cx={cx}
           cy={cy}
           r={4}
-          fill={pointColor}
-          strokeWidth={2}
-          stroke="hsl(var(--selected-date-highlight))"
+          fill={fillColor}
+          stroke={strokeColor}
+          strokeWidth={1}
         />
       );
     }
@@ -119,7 +131,16 @@ export function ValueChart({ userHistory, kpi, selectedDate }: ChartProps) {
     // Find the corresponding user history item to get the score
     const pointData = userHistory.find(day => day.log_date === payloadDateStr);
     const pointScore = pointData ? pointData.actions_day_grade : 0;
-    const pointColor = getScoreColor(pointScore);
+    
+    // Get fill color based on score (matching week-actions chart)
+    let fillColor;
+    if (pointScore == 1) {
+      fillColor = "var(--chart-positive)";
+    } else if (pointScore > 0.6) {
+      fillColor = "var(--chart-neutral)";
+    } else {
+      fillColor = "var(--chart-negative)";
+    }
     
     return (
       <circle
@@ -127,7 +148,7 @@ export function ValueChart({ userHistory, kpi, selectedDate }: ChartProps) {
         cx={cx}
         cy={cy}
         r={4}
-        fill={pointColor}
+        fill={fillColor}
       />
     );
   };

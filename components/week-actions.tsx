@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/chart"
 import { UserHistoryDay, UserHistoryLogEntry } from "@/types"
 import { useTheme } from "next-themes" // Import useTheme hook
-import { getScoreColor } from "@/utils/utils"
+
 
 interface ActionsWeekProps {
     selectedDate: string | null;
@@ -26,7 +26,7 @@ interface ChartDataItem {
     logs: UserHistoryLogEntry[];
     isHighlighted: boolean;
     grade: number;
-    dotColor: string;
+    dotFillClass: string;
 }
 
 
@@ -106,7 +106,15 @@ export function ActionsWeek({ selectedDate, userHistory }: ActionsWeekProps) {
 
             // Add the grade data for coloring the dots
             const grade = day?.actions_day_grade ?? 0;
-            const dotColor = getScoreColor(grade);
+            // Get dot fill class based on grade (equivalent to text colors)
+            let dotFillClass;
+            if (grade === 1) {
+                dotFillClass = "fill-green-600 dark:fill-green-400";
+            } else if (grade > 0.6) {
+                dotFillClass = "fill-yellow-600 dark:fill-yellow-400";
+            } else {
+                dotFillClass = "fill-red-600 dark:fill-red-400";
+            }
 
             return {
                 dayOfWeek: getDayOfWeek(dateStr),
@@ -117,7 +125,7 @@ export function ActionsWeek({ selectedDate, userHistory }: ActionsWeekProps) {
                 logs: day?.logs || [],
                 isHighlighted: dateStr === selectedDate,
                 grade: grade,
-                dotColor: dotColor
+                dotFillClass: dotFillClass
             };
         });
     };
@@ -154,11 +162,11 @@ export function ActionsWeek({ selectedDate, userHistory }: ActionsWeekProps) {
         },
         positive_actions: {
             label: "Positive",
-            color: "hsl(var(--score-green))",
+            color: "var(--chart-positive)",
         },
         negative_actions: {
             label: "Negative",
-            color: "hsl(var(--score-red))",
+            color: "var(--chart-negative)",
             // Add valueFormatter to display the absolute value
             valueFormatter: (value) => Math.abs(Number(value)).toLocaleString()
         },
@@ -178,10 +186,7 @@ export function ActionsWeek({ selectedDate, userHistory }: ActionsWeekProps) {
                     cx={cx}
                     cy={cy}
                     r={4}
-                    fill={payload.dotColor}
-                    stroke={payload.log_date === selectedDate ? "hsl(var(--selected-date-highlight))" : lineColor}
-                    strokeWidth={2}
-                    className="drop-shadow-sm"
+                    className={`drop-shadow-sm ${payload.dotFillClass}`}
                 />
             </g>
         );
@@ -227,29 +232,35 @@ export function ActionsWeek({ selectedDate, userHistory }: ActionsWeekProps) {
                     />
                     <Bar
                         dataKey="positive_actions"
-                        fill="hsl(var(--score-green))"
                         stackId="a"
                         radius={[4, 4, 0, 0]}
+                        fill="var(--chart-positive)"
                     >
                         {chartData.map((entry, index) => (
                             <Cell
                                 key={`positive-${index}`}
-                                stroke={entry.log_date === selectedDate ? "hsl(var(--selected-date-highlight))" : "transparent"}
                                 strokeWidth={entry.log_date === selectedDate ? 2 : 0}
+                                className={entry.log_date === selectedDate ? 
+                                    "stroke-green-600 dark:stroke-green-400" : 
+                                    "stroke-transparent"
+                                }
                             />
                         ))}
                     </Bar>
                     <Bar
                         dataKey="negative_actions"
-                        fill="hsl(var(--score-red))"
                         stackId="b"
                         radius={[4, 4, 0, 0]}
+                        fill="var(--chart-negative)"
                     >
                         {chartData.map((entry, index) => (
                             <Cell
                                 key={`negative-${index}`}
-                                stroke={entry.log_date === selectedDate ? "hsl(var(--selected-date-highlight))" : "transparent"}
                                 strokeWidth={entry.log_date === selectedDate ? 2 : 0}
+                                className={entry.log_date === selectedDate ? 
+                                    "stroke-red-600 dark:stroke-red-400" : 
+                                    "stroke-transparent"
+                                }
                             />
                         ))}
                     </Bar>

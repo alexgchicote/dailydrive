@@ -14,7 +14,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart"
-import { getScoreColor } from "@/utils/utils"
+
 
 interface DayScoreProps {
   dayScore: number;
@@ -24,12 +24,22 @@ export function DayScore({ dayScore }: DayScoreProps) {
   const scoreFill = 1 - dayScore;
   // Gray color for the background (scoreFill)
   const fillColor = "hsl(var(--score-faint-gray))";
-  const scoreColor = getScoreColor(dayScore);
+  
+  // Get score color using CSS variables (dark mode compliant)
+  let scoreColor;
+  if (dayScore === 1) {
+    scoreColor = "var(--chart-positive-stroke)";
+  } else if (dayScore > 0.6) {
+    scoreColor = "var(--chart-neutral-stroke)";
+  } else {
+    scoreColor = "var(--chart-negative-stroke)";
+  }
   
   // Hard coded average score
   const averageScore = 0.5;
   const averageScoreFill = 1 - averageScore;
-  const averageScoreColor = getScoreColor(averageScore);
+  // Average score color (neutral/yellow for 0.5)
+  const averageScoreColor = "var(--chart-neutral)";
   
   const chartData = [{ 
     score: dayScore, 

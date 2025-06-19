@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Fragment } from "react";
 import { createClient } from "@/utils/supabase/client";
-import { Circle, CircleCheck, CircleX, Pencil, PencilOff, Save, X, Plus, Minus } from "lucide-react";
+import { Circle, Check, CircleX, Pencil, PencilOff, Save, X, Plus, Minus } from "lucide-react";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -68,33 +68,6 @@ export function DailyLog({ userId, selectedDate, selectedActions, onClose, onDat
             return status ? "negative" : "positive";
         }
     };
-
-    // // Helper function to compute parent statuses (grouped by category)
-    // const computeParentStatuses = (
-    //     actions: any[],
-    //     doneStatus: Record<number, boolean>
-    // ): Record<string, boolean> => {
-    //     const parentStatuses: Record<string, boolean> = {};
-    //     // Group actions by category_id.
-    //     const categoryGroups: Record<string, any[]> = {};
-    //     actions.forEach((action) => {
-    //         const catId = action.category_id;
-    //         if (!categoryGroups[catId]) {
-    //             categoryGroups[catId] = [];
-    //         }
-    //         categoryGroups[catId].push(action);
-    //     });
-    //     // For each category, if at least one action is marked done, parent_status is true.
-    //     Object.keys(categoryGroups).forEach((catId) => {
-    //         const group = categoryGroups[catId];
-    //         const anyDone = group.some((action) => doneStatus[action.selected_action_id]);
-    //         parentStatuses[catId] = anyDone;
-    //     });
-
-    //     console.log
-
-    //     return parentStatuses;
-    // };
 
     // Helper function to compute parent statuses (grouped by category)
     const computeParentStatuses = (
@@ -303,14 +276,14 @@ export function DailyLog({ userId, selectedDate, selectedActions, onClose, onDat
                     {/* Save button */}
                     <button
                         onClick={handleSaveAndClose}
-                        className="bg-green-300/40 dark:bg-green-900/40 hover:bg-green-400/40 dark:hover:bg-green-700/40 text-green-600 dark:text-green-400 p-1.5 rounded-lg flex items-center justify-center transition-colors shadow-sm"
+                        className="bg-purple-300/40 dark:bg-purple-800/40 hover:bg-purple-400/40 dark:hover:bg-purple-700/40 text-purple-600 dark:text-purple-400 p-1 rounded-lg flex items-center justify-center transition-colors shadow-sm dark:shadow-white/5"
                     >
                         <Save className="h-4 w-4" />
                     </button>
                     {/* X button to close without saving */}
                     <button
                         onClick={onClose}
-                        className="bg-gray-300/40 dark:bg-gray-800/40 hover:bg-gray-300 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 p-1.5 rounded-lg flex items-center justify-center transition-colors shadow-sm"
+                        className="bg-gray-300/40 dark:bg-gray-800/40 hover:bg-gray-300 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 p-1 rounded-lg flex items-center justify-center transition-colors shadow-sm dark:shadow-white/5"
                     >
                         <X className="h-4 w-4" />
                     </button>
@@ -381,7 +354,6 @@ const DailyLogActionRow = ({
             >
                 <td className="px-4 py-2 text-black dark:text-white">
                     {action.action_name || "N/A"}
-                    {action.intent === "engage" && !action.group_category && " *"}
                 </td>
                 {/* Combined cell for circle and pencil icons */}
                 <td className="px-4 py-2 text-right">
@@ -393,41 +365,18 @@ const DailyLogActionRow = ({
                                     [action.selected_action_id]: !prev[action.selected_action_id],
                                 }))
                             }
-                            className="relative group p-2 focus:outline-none"
+                            className={`p-1 rounded-lg flex items-center justify-center transition-colors shadow-sm group focus:outline-none ${
+                                done ? 
+                                    action.intent === "engage"
+                                        ? "hover:bg-gray-300/40 hover:dark:bg-gray-800/40 bg-green-400/40 dark:bg-green-700/40 text-green-600 dark:text-green-400"
+                                        : "hover:bg-gray-300/40 hover:dark:bg-gray-800/40 bg-red-400/40 dark:bg-red-700/40 text-red-600 dark:text-red-400"
+                                    : 
+                                    action.intent === "engage"
+                                        ? "bg-gray-300/40 dark:bg-gray-800/40 text-gray-600 dark:text-gray-400 hover:text-green-600 hover:dark:text-green-400"
+                                        : "bg-gray-300/40 dark:bg-gray-800/40 text-gray-600 dark:text-gray-400 hover:text-red-600 hover:dark:text-red-400"
+                            }`}
                         >
-                            {!done ? (
-                                <>
-                                    <span className="block group-hover:hidden">
-                                        <Circle className="text-gray-400" />
-                                    </span>
-                                    <span className="hidden group-hover:block">
-                                        {action.intent === "engage" ? (
-                                            <CircleCheck className="text-green-300" />
-                                        ) : (
-                                            <CircleX className="text-red-300" />
-                                        )}
-                                    </span>
-                                </>
-                            ) : (
-                                <>
-                                    <span className="block group-hover:hidden">
-                                        {action.intent === "engage" ? (
-                                            <CircleCheck className="text-green-600" />
-                                        ) : (
-                                            <CircleX className="text-red-600" />
-                                        )}
-                                    </span>
-                                    <span className="hidden group-hover:block">
-                                        <Circle
-                                            className={
-                                                action.intent === "engage"
-                                                    ? "text-green-300"
-                                                    : "text-red-300"
-                                            }
-                                        />
-                                    </span>
-                                </>
-                            )}
+                            {action.intent === "engage" ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
                         </button>
                         <button
                             onClick={() =>
@@ -437,16 +386,9 @@ const DailyLogActionRow = ({
                                         !prev[action.selected_action_id],
                                 }))
                             }
-                            className="
-                                text-gray-600 
-                                dark:text-gray-500 
-                                px-2 
-                                py-1 
-                                rounded 
-                                focus:outline-none
-                            "
+                            className="bg-gray-300/40 dark:bg-gray-800/40 hover:bg-gray-300 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 p-1 rounded-lg flex items-center justify-center transition-colors shadow-sm"
                         >
-                            {isNotesOpen ? <PencilOff /> : <Pencil />}
+                            {isNotesOpen ? <PencilOff className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
                         </button>
                     </div>
                 </td>
