@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Fragment } from "react";
 import { createClient } from "@/utils/supabase/client";
-import { Circle, Check, CircleX, Pencil, PencilOff, Save, X, Plus, Minus } from "lucide-react";
+import { Check, Pencil, PencilOff, Save, X } from "lucide-react";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
 

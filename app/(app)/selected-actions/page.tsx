@@ -469,10 +469,10 @@ const SelectedActionsPage: React.FC = () => {
     if (loading) return <div>Loading...</div>;
 
     return (
-        <div className="container mx-auto p-8 max-w-7xl">
+        <div className="h-screen flex flex-col">
             <Toaster position="top-center" />
             {/* Header */}
-            <header className="flex justify-between items-center mb-8">
+            <header className="flex justify-between items-center p-8 pb-4 flex-shrink-0">
                 <h1 className="text-3xl font-bold">Manage Your Actions</h1>
                 <div className="flex gap-4">
                     {hasPendingChanges() && (
@@ -494,16 +494,17 @@ const SelectedActionsPage: React.FC = () => {
                 </div>
             </header>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="flex-1 grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-8 px-4 md:px-8 pb-4 md:pb-8 min-h-0">
                 {/* Selected Actions */}
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between">
-                        <CardTitle>Your Selected Actions</CardTitle>
+                <Card className="flex flex-col min-h-[350px] md:min-h-[400px]">
+                    <CardHeader className="flex flex-row items-center justify-between flex-shrink-0 pb-4">
+                        <CardTitle className="text-lg md:text-xl">Your Selected Actions</CardTitle>
                         <Dialog open={showCustomActionDialog} onOpenChange={setShowCustomActionDialog}>
                             <DialogTrigger asChild>
-                                <Button>
-                                    <Plus className="w-4 h-4 mr-2" />
-                                    Create Custom Action
+                                <Button className="text-xs md:text-sm">
+                                    <Plus className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" />
+                                    <span className="hidden sm:inline">Create Custom Action</span>
+                                    <span className="sm:hidden">Create</span>
                                 </Button>
                             </DialogTrigger>
                             <CustomActionDialog
@@ -516,7 +517,7 @@ const SelectedActionsPage: React.FC = () => {
                             />
                         </Dialog>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="flex-1 min-h-0 p-3 md:p-6">
                         <SelectedActionsTable
                             actions={selectedActions.filter((action) => action.selected_action_id !== null)}
                             onRemoveAction={handleRemoveAction}
@@ -526,11 +527,11 @@ const SelectedActionsPage: React.FC = () => {
                 </Card>
 
                 {/* Available Actions */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Available Actions</CardTitle>
+                <Card className="flex flex-col min-h-[350px] md:min-h-[400px]">
+                    <CardHeader className="flex-shrink-0 pb-4">
+                        <CardTitle className="text-lg md:text-xl">Available Actions</CardTitle>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="flex-1 min-h-0 p-3 md:p-6">
                         <UnselectedActionsTable
                             actions={unselectedActions}
                             onAddAction={handleAddAction}

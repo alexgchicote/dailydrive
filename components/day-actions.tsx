@@ -62,7 +62,7 @@ export function DayActions({dayActions}: DayActionsProps) {
                 } ${
                   // Add top border only for the first item in a category
                   action._meta.isFirstInCategory ? 'border-t' : ''
-                } border-zinc-800 dark:border-zinc-600`}>
+                } border-zinc-400 dark:border-zinc-600`}>
                   <td className="w-6 px-4 py-2 align-middle">
                     <div className={`p-1 rounded-lg flex items-center justify-center transition-colors shadow-sm ${
                       action.outcome === "positive" 
@@ -86,7 +86,7 @@ export function DayActions({dayActions}: DayActionsProps) {
                   <tr className={`${
                     // Add bottom border if it's the last in its category
                     action._meta.isLastInCategory ? 'border-b' : ''
-                  } border-zinc-800 dark:border-zinc-600`}>
+                  } border-zinc-400 dark:border-zinc-600`}>
                     <td className="w-6 px-4" />
                     <td className="text-left text-sm italic text-gray-700 dark:text-gray-300 pb-1">
                       {action.notes}
