@@ -349,9 +349,9 @@ const DashboardPage = () => {
         </Card>
 
         {/* Day View Section - Shown on mobile right after calendar, hidden on medium+ in this position */}
-        <Card 
+        <div 
           ref={dayViewRef}
-          className="md:hidden w-80 mx-auto h-[500px] overflow-hidden"
+          className="md:hidden w-80 mx-auto"
         >
           <DayView
             selectedDate={selectedDate}
@@ -360,10 +360,10 @@ const DashboardPage = () => {
             userId={userId}
             onDataRefresh={handleDataRefresh}
           />
-        </Card>
+        </div>
 
         {/* Day View Section - Hidden on mobile, shown on medium+ screens */}
-        <Card className="hidden md:block w-80 h-[500px] overflow-hidden">
+        <div className="hidden md:block w-80">
           <DayView
             selectedDate={selectedDate}
             selectedActions={selectedActions}
@@ -371,7 +371,7 @@ const DashboardPage = () => {
             userId={userId}
             onDataRefresh={handleDataRefresh}
           />
-        </Card>
+        </div>
 
         {/* Journal Editor Section */}
         <Card className="w-80 mx-auto md:w-full md:mx-0 md:col-span-2 xl:col-span-1 h-[500px] overflow-hidden">

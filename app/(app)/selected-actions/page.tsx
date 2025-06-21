@@ -3,181 +3,15 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
-import { UserAction, SelectedActionsTable, UnselectedActionsTable } from "@/components/selected-actions";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { UserAction, SelectedActionsTable, AddActionsModal } from "@/components/selected-actions";
+
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Plus, Save, ArrowLeft } from "lucide-react";
 import React from "react";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
-import { Checkbox } from "@/components/ui/checkbox";
 
-// Move CustomActionDialog outside the main component
-const CustomActionDialog = React.memo(({
-    newAction,
-    setNewAction,
-    categories,
-    categoryData,
-    onClose,
-    onCreate
-}: {
-    newAction: {
-        action_name: string;
-        category_name: string;
-        category_id: number | null;
-        intent: "engage" | "avoid";
-        isNewCategory: boolean;
-        addToSelected: boolean;
-    };
-    setNewAction: (action: any) => void;
-    categories: string[];
-    categoryData: Array<{ category_id: number; category_name: string }>;
-    onClose: () => void;
-    onCreate: () => void;
-}) => {
-    type ActionState = typeof newAction;
-
-    // Memoize handlers to prevent infinite recursion
-    const handleActionNameChange = React.useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-        setNewAction((prev: ActionState) => ({ ...prev, action_name: e.target.value }));
-    }, [setNewAction]);
-
-    const handleCategoryChange = React.useCallback((value: string) => {
-        // Find the category data for the selected category name
-        const selectedCategory = categoryData.find(cat => cat.category_name === value);
-        if (!selectedCategory) {
-            console.error("Selected category not found in category data");
-            return;
-        }
-
-        setNewAction((prev: ActionState) => ({ 
-            ...prev, 
-            category_name: value,
-            category_id: selectedCategory.category_id,
-            isNewCategory: false 
-        }));
-    }, [setNewAction, categoryData]);
-
-    const handleIntentChange = React.useCallback((value: "engage" | "avoid") => {
-        setNewAction((prev: ActionState) => ({ ...prev, intent: value }));
-    }, [setNewAction]);
-
-    const handleNewCategoryChange = React.useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-        setNewAction((prev: ActionState) => ({ 
-            ...prev, 
-            category_name: e.target.value,
-            category_id: null // Will be set when creating the category
-        }));
-    }, [setNewAction]);
-
-    const toggleNewCategory = React.useCallback(() => {
-        setNewAction((prev: ActionState) => ({ 
-            ...prev, 
-            isNewCategory: !prev.isNewCategory, 
-            category_name: "",
-            category_id: null
-        }));
-    }, [setNewAction]);
-
-    const handleAddToSelectedChange = React.useCallback((checked: boolean) => {
-        setNewAction((prev: ActionState) => ({ 
-            ...prev, 
-            addToSelected: checked 
-        }));
-    }, [setNewAction]);
-
-    return (
-        <DialogContent>
-            <DialogHeader>
-                <DialogTitle>Create Custom Action</DialogTitle>
-            </DialogHeader>
-            <form
-                onSubmit={(e) => {
-                    e.preventDefault();
-                    onCreate();
-                }}
-                className="space-y-4 py-4"
-            >
-                <div className="space-y-2">
-                    <label htmlFor="action-name">Action Name</label>
-                    <Input
-                        id="action-name"
-                        value={newAction.action_name}
-                        onChange={handleActionNameChange}
-                        placeholder="Enter action name"
-                    />
-                </div>
-                <div className="space-y-2">
-                    <label>Category</label>
-                    <div className="flex gap-2">
-                        {!newAction.isNewCategory ? (
-                            <select
-                                value={newAction.category_name}
-                                onChange={(e) => handleCategoryChange(e.target.value)}
-                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                                <option value="">Select category</option>
-                                {categories.map(cat => (
-                                    <option key={cat} value={cat}>{cat}</option>
-                                ))}
-                            </select>
-                        ) : (
-                            <Input
-                                value={newAction.category_name}
-                                onChange={handleNewCategoryChange}
-                                placeholder="Enter new category name"
-                            />
-                        )}
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={toggleNewCategory}
-                        >
-                            {newAction.isNewCategory ? "Select Existing" : "Create New"}
-                        </Button>
-                    </div>
-                </div>
-                <div className="space-y-2">
-                    <label>Intent</label>
-                    <select
-                        value={newAction.intent}
-                        onChange={(e) => handleIntentChange(e.target.value as "engage" | "avoid")}
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                        <option value="">Select intent</option>
-                        <option value="engage">Engage</option>
-                        <option value="avoid">Avoid</option>
-                    </select>
-                </div>
-                <div className="flex items-center space-x-2">
-                    <Checkbox
-                        id="add-to-selected"
-                        checked={newAction.addToSelected}
-                        onCheckedChange={handleAddToSelectedChange}
-                    />
-                    <label
-                        htmlFor="add-to-selected"
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                    >
-                        Add to selected actions
-                    </label>
-                </div>
-                <Button
-                    type="submit"
-                    className="w-full"
-                    disabled={!newAction.action_name || !newAction.category_name}
-                >
-                    Create Action
-                </Button>
-            </form>
-        </DialogContent>
-    );
-});
-
-const SelectedActionsPage: React.FC = () => {
+function SelectedActionsPage() {
     const router = useRouter();
     const supabase = createClient();
 
@@ -187,6 +21,8 @@ const SelectedActionsPage: React.FC = () => {
     const [pendingRemovals, setPendingRemovals] = useState<number[]>([]);
     const [userId, setUserId] = useState<string | null>(null);
     const [showCustomActionDialog, setShowCustomActionDialog] = useState(false);
+    const [showAddActionsModal, setShowAddActionsModal] = useState(false);
+    const [addActionsCategoryFilter, setAddActionsCategoryFilter] = useState<string | undefined>(undefined);
     const [newAction, setNewAction] = useState({
         action_name: "",
         category_name: "",
@@ -197,6 +33,7 @@ const SelectedActionsPage: React.FC = () => {
     });
     const [categories, setCategories] = useState<string[]>([]);
     const [categoryData, setCategoryData] = useState<Array<{ category_id: number; category_name: string }>>([]);
+    const [saving, setSaving] = useState(false);
 
     // Check if there are any pending changes
     const hasPendingChanges = () => {
@@ -210,7 +47,7 @@ const SelectedActionsPage: React.FC = () => {
         const hasGroupCategoryChanges = userActions.some(action =>
             action.dbSelectedActionId &&
             action.selected_action_id !== null && // Still selected
-            action.group_category !== action.originalGroupCategory
+            Boolean(action.group_category) !== Boolean(action.originalGroupCategory)
         );
         
         return hasPendingAdditions || hasActualPendingRemovals || hasGroupCategoryChanges;
@@ -228,7 +65,8 @@ const SelectedActionsPage: React.FC = () => {
             const mappedData: UserAction[] = (data as any[]).map((row) => ({
                 ...row,
                 dbSelectedActionId: row.selected_action_id,
-                originalGroupCategory: row.group_category,
+                originalGroupCategory: Boolean(row.group_category),
+                group_category: Boolean(row.group_category), // Normalize to boolean
             }));
             setUserActions(mappedData || []);
         }
@@ -275,10 +113,10 @@ const SelectedActionsPage: React.FC = () => {
 
     // Derive selected and unselected actions.
     const selectedActions = userActions.filter(
-        (action) => action.selected_action_id !== null || action.pendingAdd
+        (action) => action.selected_action_id !== null || action.pendingAdd || action.pendingRemoval
     );
     const unselectedActions = userActions.filter(
-        (action) => action.selected_action_id === null && !action.pendingAdd
+        (action) => (action.selected_action_id === null && !action.pendingRemoval) || action.pendingAdd
     );
 
     // Handler to add an unselected action locally.
@@ -320,7 +158,8 @@ const SelectedActionsPage: React.FC = () => {
                     ? {
                         ...a,
                         pendingAdd: false,
-                        selected_action_id: null
+                        selected_action_id: action.pendingAdd ? null : a.selected_action_id, // Keep selected if not pending add
+                        pendingRemoval: !action.pendingAdd // Mark for removal if not pending add
                     } : a
             )
         );
@@ -330,6 +169,40 @@ const SelectedActionsPage: React.FC = () => {
         if (action.dbSelectedActionId !== undefined && !action.pendingAdd) {
             setPendingRemovals((prev) => [...prev, action.dbSelectedActionId!]);
         }
+    };
+
+    // Handler to undo removal of an action
+    const handleUndoRemoval = (action: UserAction): void => {
+        setUserActions((prev) =>
+            prev.map((a) =>
+                a.action_id === action.action_id
+                    ? {
+                        ...a,
+                        pendingRemoval: false,
+                        selected_action_id: a.dbSelectedActionId || a.selected_action_id
+                    } : a
+            )
+        );
+        
+        // Remove from pendingRemovals if it was there
+        if (action.dbSelectedActionId !== undefined) {
+            setPendingRemovals((prev) => prev.filter(id => id !== action.dbSelectedActionId));
+        }
+    };
+
+    // Handler to undo addition of an action
+    const handleUndoAdd = (action: UserAction): void => {
+        setUserActions((prev) =>
+            prev.map((a) =>
+                a.action_id === action.action_id
+                    ? {
+                        ...a,
+                        pendingAdd: false,
+                        selected_action_id: null,
+                        added_to_tracking_on: undefined
+                    } : a
+            )
+        );
     };
 
     // Handler for toggling the group category switch.
@@ -345,6 +218,7 @@ const SelectedActionsPage: React.FC = () => {
     const handleSaveChanges = async (): Promise<void> => {
         if (!userId) return;
 
+        setSaving(true);
         // Process pending additions.
         const pendingAdditions = userActions.filter((action) => action.pendingAdd);
         if (pendingAdditions.length > 0) {
@@ -397,6 +271,7 @@ const SelectedActionsPage: React.FC = () => {
         // Refresh the data from the database.
         await fetchUserActions(userId);
         setPendingRemovals([]);
+        setSaving(false);
     };
 
     // Memoize the create action handler
@@ -432,22 +307,46 @@ const SelectedActionsPage: React.FC = () => {
                 return;
             }
 
-            // Start a transaction
+            // Create the action without adding to selected (we'll handle that locally)
             const { data, error } = await supabase.rpc('create_custom_action', {
                 p_user_id: userId,
                 p_action_name: newAction.action_name,
                 p_category_name: newAction.category_name,
                 p_category_id: newAction.isNewCategory ? null : newAction.category_id,
-                p_intent: newAction.intent,
-                p_add_to_selected: newAction.addToSelected
+                p_intent: newAction.intent
             });
 
             if (error) throw error;
 
-            // If we get here, everything succeeded
+            // The RPC returns just the action_id (integer), not a full object
+            const newActionId = data; // data is the returned action_id
+            
+            if (newActionId) {
+                // Add the new action to local state using form data
+                const newActionData: UserAction = {
+                    action_id: newActionId,
+                    action_name: newAction.action_name,
+                    category_name: newAction.category_name,
+                    intent: newAction.intent,
+                    selected_action_id: newAction.addToSelected ? Date.now() : null, // temporary id if adding to selected
+                    pendingAdd: newAction.addToSelected,
+                    pendingRemoval: false,
+                    group_category: false,
+                    originalGroupCategory: false,
+                    added_to_tracking_on: newAction.addToSelected ? new Date().toISOString() : undefined,
+                    dbSelectedActionId: undefined
+                };
+
+                // Add to userActions state
+                setUserActions(prev => [...prev, newActionData]);
+            }
+
+            // Refresh categories in case a new one was created
+            await fetchCategories(userId);
+
             toast.success("Custom action created successfully");
             
-            // Reset form and refresh data
+            // Reset form
             setNewAction({
                 action_name: "",
                 category_name: "",
@@ -456,9 +355,6 @@ const SelectedActionsPage: React.FC = () => {
                 isNewCategory: false,
                 addToSelected: true
             });
-            setShowCustomActionDialog(false);
-            await fetchUserActions(userId);
-            await fetchCategories(userId);
 
         } catch (error) {
             console.error("Error creating custom action:", error);
@@ -469,78 +365,57 @@ const SelectedActionsPage: React.FC = () => {
     if (loading) return <div>Loading...</div>;
 
     return (
-        <div className="h-screen flex flex-col">
+        <div className="flex flex-col">
             <Toaster position="top-center" />
             {/* Header */}
             <header className="flex justify-between items-center p-8 pb-4 flex-shrink-0">
                 <h1 className="text-3xl font-bold">Manage Your Actions</h1>
-                <div className="flex gap-4">
-                    {hasPendingChanges() && (
-                        <Button
-                            onClick={handleSaveChanges}
-                            className="bg-blue-600 hover:bg-blue-700"
-                        >
-                            <Save className="w-4 h-4 mr-2" />
-                            Save Changes
-                        </Button>
-                    )}
-                    <Button
-                        onClick={() => router.push("/dashboard")}
-                        variant="outline"
-                    >
-                        <ArrowLeft className="w-4 h-4 mr-2" />
-                        Back to Dashboard
-                    </Button>
-                </div>
+                <Button
+                    onClick={() => router.push("/dashboard")}
+                    variant="outline"
+                >
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Back to Dashboard
+                </Button>
             </header>
 
-            <div className="flex-1 grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-8 px-4 md:px-8 pb-4 md:pb-8 min-h-0">
+            <div className="flex-1 px-4 md:px-8 pb-4 md:pb-8 min-h-0">
                 {/* Selected Actions */}
-                <Card className="flex flex-col min-h-[350px] md:min-h-[400px]">
-                    <CardHeader className="flex flex-row items-center justify-between flex-shrink-0 pb-4">
-                        <CardTitle className="text-lg md:text-xl">Your Selected Actions</CardTitle>
-                        <Dialog open={showCustomActionDialog} onOpenChange={setShowCustomActionDialog}>
-                            <DialogTrigger asChild>
-                                <Button className="text-xs md:text-sm">
-                                    <Plus className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" />
-                                    <span className="hidden sm:inline">Create Custom Action</span>
-                                    <span className="sm:hidden">Create</span>
-                                </Button>
-                            </DialogTrigger>
-                            <CustomActionDialog
-                                newAction={newAction}
-                                setNewAction={setNewAction}
-                                categories={categories}
-                                categoryData={categoryData}
-                                onClose={() => setShowCustomActionDialog(false)}
-                                onCreate={handleCreateCustomAction}
-                            />
-                        </Dialog>
-                    </CardHeader>
-                    <CardContent className="flex-1 min-h-0 p-3 md:p-6">
-                        <SelectedActionsTable
-                            actions={selectedActions.filter((action) => action.selected_action_id !== null)}
-                            onRemoveAction={handleRemoveAction}
-                            onToggleGroupCategory={handleToggleGroupCategory}
-                        />
-                    </CardContent>
-                </Card>
-
-                {/* Available Actions */}
-                <Card className="flex flex-col min-h-[350px] md:min-h-[400px]">
-                    <CardHeader className="flex-shrink-0 pb-4">
-                        <CardTitle className="text-lg md:text-xl">Available Actions</CardTitle>
-                    </CardHeader>
-                    <CardContent className="flex-1 min-h-0 p-3 md:p-6">
-                        <UnselectedActionsTable
-                            actions={unselectedActions}
-                            onAddAction={handleAddAction}
-                        />
-                    </CardContent>
-                </Card>
+                <SelectedActionsTable
+                    actions={selectedActions.filter((action) => action.selected_action_id !== null || action.pendingRemoval)}
+                    onRemoveAction={handleRemoveAction}
+                    onUndoRemoval={handleUndoRemoval}
+                    onToggleGroupCategory={handleToggleGroupCategory}
+                    onAddActionsForCategory={(category) => {
+                        setAddActionsCategoryFilter(category);
+                        setShowAddActionsModal(true);
+                    }}
+                    hasPendingChanges={hasPendingChanges()}
+                    saving={saving}
+                    onSaveChanges={handleSaveChanges}
+                    onAddActions={() => setShowAddActionsModal(true)}
+                />
+                
+                {/* Add Actions Modal */}
+                <AddActionsModal
+                    isOpen={showAddActionsModal}
+                    onClose={() => {
+                        setShowAddActionsModal(false);
+                        setAddActionsCategoryFilter(undefined);
+                    }}
+                    actions={unselectedActions}
+                    onAddAction={handleAddAction}
+                    onUndoAdd={handleUndoAdd}
+                    categoryFilter={addActionsCategoryFilter}
+                    newAction={newAction}
+                    setNewAction={setNewAction}
+                    categories={categories}
+                    categoryData={categoryData}
+                    onCreateCustomAction={handleCreateCustomAction}
+                />
             </div>
         </div>
     );
-};
+}
 
 export default SelectedActionsPage;

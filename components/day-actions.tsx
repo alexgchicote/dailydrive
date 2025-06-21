@@ -62,7 +62,7 @@ export function DayActions({dayActions}: DayActionsProps) {
                 } ${
                   // Add top border only for the first item in a category
                   action._meta.isFirstInCategory ? 'border-t' : ''
-                } border-zinc-400 dark:border-zinc-600`}>
+                } border-border`}>
                   <td className="w-6 px-4 py-2 align-middle">
                     <div className={`p-1 rounded-lg flex items-center justify-center transition-colors shadow-sm ${
                       action.outcome === "positive" 

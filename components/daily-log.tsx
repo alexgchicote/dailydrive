@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect, Fragment } from "react";
+import React, { useState, useEffect, Fragment } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { Check, Pencil, PencilOff, Save, X } from "lucide-react";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 
 import { UserHistoryLogEntry } from "@/types";
 import { formatDateHeader } from "@/utils/utils";
@@ -268,41 +269,43 @@ export function DailyLog({ userId, selectedDate, selectedActions, onClose, onDat
         }));
 
     return (
-        <div className="h-full flex flex-col">
+        <Card className="h-[500px] flex flex-col">
             <Toaster position="top-center" />
-            <div className="pb-0 flex flex-row justify-between items-center flex-shrink-0 p-6">
-                <h3 className="text-lg font-semibold leading-none tracking-tight">{formatDateHeader(selectedDate)}</h3>
-                <div className="flex space-x-2">
-                    {/* Save button */}
-                    <button
-                        onClick={handleSaveAndClose}
-                        className="bg-purple-300/40 dark:bg-purple-800/40 hover:bg-purple-400/40 dark:hover:bg-purple-700/40 text-purple-600 dark:text-purple-400 p-1 rounded-lg flex items-center justify-center transition-colors shadow-sm dark:shadow-white/5"
-                    >
-                        <Save className="h-4 w-4" />
-                    </button>
-                    {/* X button to close without saving */}
-                    <button
-                        onClick={onClose}
-                        className="bg-gray-300/40 dark:bg-gray-800/40 hover:bg-gray-300 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 p-1 rounded-lg flex items-center justify-center transition-colors shadow-sm dark:shadow-white/5"
-                    >
-                        <X className="h-4 w-4" />
-                    </button>
-                </div>
-            </div>
-            <div className="flex-1 flex flex-col overflow-hidden pt-4 min-h-0 p-6">
-                <div className="flex-1 overflow-y-auto min-h-0">
-                    {sortedGroupedActions.map((group) => (
-                        <div
-                            key={group.category}
-                            className="shadow-[0_4px_12px_theme(colors.gray.300)] dark:shadow-[4px_4px_4px_theme(colors.zinc.800)] mb-4"
+            <CardHeader className="pb-2 flex-shrink-0">
+                <div className="flex justify-between items-center">
+                    <h3 className="text-lg font-semibold leading-none tracking-tight">{formatDateHeader(selectedDate)}</h3>
+                    <div className="flex space-x-2">
+                        {/* Save button */}
+                        <button
+                            onClick={handleSaveAndClose}
+                            className="bg-purple-300/40 dark:bg-purple-800/40 hover:bg-purple-400/40 dark:hover:bg-purple-700/40 text-purple-600 dark:text-purple-400 p-1 rounded-lg flex items-center justify-center transition-colors shadow-sm dark:shadow-white/5"
                         >
-                            {/* Category Header */}
-                            <div className="bg-gray-200 dark:bg-gray-900 px-4 py-2 rounded-t-lg">
-                                <span className="text-sm dark:text-gray-400">{group.category}</span>
-                            </div>
-                            {/* Table */}
-                            <table className="min-w-full table-fixed">
-                                <tbody>
+                            <Save className="h-4 w-4" />
+                        </button>
+                        {/* X button to close without saving */}
+                        <button
+                            onClick={onClose}
+                            className="bg-gray-300/40 dark:bg-gray-800/40 hover:bg-gray-300 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 p-1 rounded-lg flex items-center justify-center transition-colors shadow-sm dark:shadow-white/5"
+                        >
+                            <X className="h-4 w-4" />
+                        </button>
+                    </div>
+                </div>
+            </CardHeader>
+            <CardContent className="flex-1 min-h-0 px-3 md:px-6">
+                <div className="h-full overflow-auto">
+                    <table className="w-full">
+                        <tbody>
+                            {sortedGroupedActions.map((group) => (
+                                <React.Fragment key={group.category}>
+                                    <tr className="sticky top-0 z-10 bg-background border-b-2 border-border border-l-2 border-l-transparent">
+                                        <td
+                                            colSpan={2}
+                                            className="pb-2 pt-3 text-xs text-gray-600 dark:text-gray-400 font-thin text-muted-foreground"
+                                        >
+                                            {group.category}
+                                        </td>
+                                    </tr>
                                     {group.actions.map((action) => (
                                         <DailyLogActionRow
                                             key={action.selected_action_id}
@@ -313,13 +316,13 @@ export function DailyLog({ userId, selectedDate, selectedActions, onClose, onDat
                                             setNotes={setNotes}
                                         />
                                     ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    ))}
+                                </React.Fragment>
+                            ))}
+                        </tbody>
+                    </table>
                 </div>
-            </div>
-        </div>
+            </CardContent>
+        </Card>
     );
 }
 
@@ -348,15 +351,12 @@ const DailyLogActionRow = ({
     return (
         <Fragment>
             {/* Main Action Row: if notes are open, omit bottom border */}
-            <tr
-                className={`${isNotesOpen ? "" : "border-b border-gray-200 dark:border-gray-700"
-                    }`}
-            >
-                <td className="px-4 py-2 text-black dark:text-white">
+            <tr>
+                <td className="p-2 text-black dark:text-white">
                     {action.action_name || "N/A"}
                 </td>
                 {/* Combined cell for circle and pencil icons */}
-                <td className="px-4 py-2 text-right">
+                <td className="p-2 text-right" style={{ width: "80px", minWidth: "80px", maxWidth: "80px" }}>
                     <div className="flex justify-end items-center space-x-2">
                         <button
                             onClick={() =>
@@ -398,7 +398,7 @@ const DailyLogActionRow = ({
                 <tr>
                     <td
                         colSpan={2}
-                        className="px-4 py-2 border-b border-gray-200 dark:border-gray-700"
+                        className="p-2"
                     >
                         <textarea
                             value={notes[action.selected_action_id] || ""}
