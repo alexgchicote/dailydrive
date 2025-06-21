@@ -289,13 +289,13 @@ const DashboardPage = () => {
           </div>
           <div className="flex items-center gap-4">
             <button
-              onClick={() => router.push("/selected-actions")}
+              onClick={() => router.push("/manage-actions")}
               className="bg-orange-200/40 dark:bg-orange-800/40 hover:bg-orange-300/40 dark:hover:bg-orange-700/40 text-orange-600 dark:text-orange-400 p-2 md:px-3 md:py-2 rounded-lg flex items-center gap-2 text-sm xl:text-base"
-              title={selectedActions.length < 1 ? "Add Actions" : "Edit Actions"}
+              title={selectedActions.length < 1 ? "Add Actions" : "Manage Actions"}
             >
               <Pencil className="h-4 w-4" />
               <span className="hidden md:inline">
-                {selectedActions.length < 1 ? "Add Actions" : "Edit Actions"}
+                {selectedActions.length < 1 ? "Add Actions" : "Manage Actions"}
               </span>
               {selectedActions.length > 0 && (
                 <span className="md:hidden">({selectedActions.length})</span>
