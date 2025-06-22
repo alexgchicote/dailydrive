@@ -62,7 +62,7 @@ function SelectedActionsTable({
 
     return (
         <Card className="max-h-[calc(100vh-200px)] min-h-[400px] flex flex-col">
-            <CardHeader className="pb-2 flex-shrink-0">
+            <CardHeader className="pb-2 flex-shrink-0 px-3 md:px-6">
                 <div className="flex justify-between items-center">
                     <CardTitle className="text-lg font-medium">Selected Actions</CardTitle>
                     <div className="flex items-center gap-2">
@@ -520,7 +520,7 @@ function AddActionsModal({
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
+            <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col mx-4 sm:mx-6">
                 <DialogHeader>
                     <DialogTitle>
                         Add Actions {categoryFilter && `- ${categoryFilter}`}

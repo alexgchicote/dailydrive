@@ -367,15 +367,16 @@ function SelectedActionsPage() {
     return (
         <div className="flex flex-col">
             <Toaster position="top-center" />
-            {/* Header */}
-            <header className="flex justify-between items-center p-8 pb-4 flex-shrink-0">
-                <h1 className="text-3xl font-bold">Manage Your Actions</h1>
+            {/* Header - aligned with table content */}
+            <header className="flex justify-between items-center px-4 md:px-8 pt-8 pb-4">
+                <h1 className="text-xl md:text-2xl xl:text-4xl font-bold">Manage Your Actions</h1>
                 <Button
                     onClick={() => router.push("/dashboard")}
                     variant="outline"
+                    className="p-2 xs:px-3 md:py-2 text-sm xl:text-base"
                 >
-                    <ArrowLeft className="w-4 h-4 mr-2" />
-                    Back to Dashboard
+                    <ArrowLeft className="h-4 w-4" />
+                    <span className="hidden sm:inline ml-2">Back to Dashboard</span>
                 </Button>
             </header>
 

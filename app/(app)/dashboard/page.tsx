@@ -285,7 +285,7 @@ const DashboardPage = () => {
       <div className="w-80 mx-auto md:w-[656px] md:mx-auto xl:w-full xl:mx-0">
         <header className="flex justify-between items-center my-6">
           <div className="text-left flex-1">
-            <h1 className="text-xl md:text-2xl xl:text-4xl font-bold">Daily Drive Dashboard</h1>
+            <h1 className="text-xl md:text-2xl xl:text-4xl font-bold">Dashboard</h1>
           </div>
           <div className="flex items-center gap-4">
             <button
@@ -294,7 +294,7 @@ const DashboardPage = () => {
               title={selectedActions.length < 1 ? "Add Actions" : "Manage Actions"}
             >
               <Pencil className="h-4 w-4" />
-              <span className="hidden md:inline">
+              <span className="hidden sm:inline">
                 {selectedActions.length < 1 ? "Add Actions" : "Manage Actions"}
               </span>
               {selectedActions.length > 0 && (
