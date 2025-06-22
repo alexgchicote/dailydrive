@@ -368,7 +368,7 @@ function SelectedActionsPage() {
         <div className="flex flex-col">
             <Toaster position="top-center" />
             {/* Header - aligned with table content */}
-            <header className="flex justify-between items-center px-4 md:px-8 pt-8 pb-4">
+            <header className="flex justify-between items-center px-4 md:px-8 pt-4 sm:pt-8 pb-4">
                 <h1 className="text-xl md:text-2xl xl:text-4xl font-bold">Manage Your Actions</h1>
                 <Button
                     onClick={() => router.push("/dashboard")}

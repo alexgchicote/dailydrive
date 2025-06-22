@@ -282,8 +282,8 @@ const DashboardPage = () => {
   return (
     <>
       {/* Dashboard Header - exactly matches responsive grid boundaries */}
-      <div className="w-80 mx-auto md:w-[656px] md:mx-auto xl:w-full xl:mx-0">
-        <header className="flex justify-between items-center my-6">
+      <div className="w-80 mx-auto md:w-[656px] md:mx-auto xl:w-full xl:mx-0 mb-3">
+        <header className="flex justify-between items-center pt-4 sm:pt-8 pb-1">
           <div className="text-left flex-1">
             <h1 className="text-xl md:text-2xl xl:text-4xl font-bold">Dashboard</h1>
           </div>
