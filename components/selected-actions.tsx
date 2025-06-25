@@ -520,7 +520,7 @@ function AddActionsModal({
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col mx-4 sm:mx-6">
+            <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col !w-[calc(100vw-2rem)] sm:!w-[calc(100vw-2rem)] md:!w-[calc(100vw-3rem)] lg:!w-[calc(100vw-4rem)] rounded-lg">
                 <DialogHeader>
                     <DialogTitle>
                         Add Actions {categoryFilter && `- ${categoryFilter}`}

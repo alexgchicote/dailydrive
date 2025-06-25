@@ -27,6 +27,9 @@ export function DailyLog({ userId, selectedDate, selectedActions, onClose, onDat
     const [notes, setNotes] = useState<Record<number, string>>({});
     // State to track if the component is loaded
     const [isLoaded, setIsLoaded] = useState(false);
+    // Track original state to detect changes
+    const [originalDoneStatus, setOriginalDoneStatus] = useState<Record<number, boolean>>({});
+    const [originalNotes, setOriginalNotes] = useState<Record<number, string>>({});
 
     // Initialize the state on component mount
     useEffect(() => {
@@ -46,8 +49,37 @@ export function DailyLog({ userId, selectedDate, selectedActions, onClose, onDat
 
         setDoneStatus(doneStatusMap);
         setNotes(notesMap);
+        // Store original state for change detection
+        setOriginalDoneStatus(doneStatusMap);
+        setOriginalNotes(notesMap);
         setIsLoaded(true);
     }, [selectedActions]); // Only run when selectedActions changes
+
+    // Helper function to check if there's an existing log
+    const hasExistingLog = () => {
+        return selectedActions.some(action => 
+            action.status !== null || (action.notes != null && action.notes.trim() !== "")
+        );
+    };
+
+    // Helper function to check if there are unsaved changes
+    const hasUnsavedChanges = () => {
+        // Check if done status has changed
+        const doneStatusChanged = Object.keys({...originalDoneStatus, ...doneStatus}).some(key => {
+            const actionId = parseInt(key);
+            return (originalDoneStatus[actionId] || false) !== (doneStatus[actionId] || false);
+        });
+
+        // Check if notes have changed
+        const notesChanged = Object.keys({...originalNotes, ...notes}).some(key => {
+            const actionId = parseInt(key);
+            const originalNote = originalNotes[actionId] || "";
+            const currentNote = notes[actionId] || "";
+            return originalNote !== currentNote;
+        });
+
+        return doneStatusChanged || notesChanged;
+    };
 
     // Compute outcome based on intent, status and status of sibling actions
     const computeOutcome = (
@@ -275,20 +307,24 @@ export function DailyLog({ userId, selectedDate, selectedActions, onClose, onDat
                 <div className="flex justify-between items-center">
                     <h3 className="text-lg font-semibold leading-none tracking-tight">{formatDateHeader(selectedDate)}</h3>
                     <div className="flex space-x-2">
-                        {/* Save button */}
+                        {/* Save button - show if there are unsaved changes OR no existing log */}
+                        {(hasUnsavedChanges() || !hasExistingLog()) && (
                         <button
                             onClick={handleSaveAndClose}
                             className="bg-purple-300/40 dark:bg-purple-800/40 hover:bg-purple-400/40 dark:hover:bg-purple-700/40 text-purple-600 dark:text-purple-400 p-1 rounded-lg flex items-center justify-center transition-colors shadow-sm dark:shadow-white/5"
                         >
                             <Save className="h-4 w-4" />
                         </button>
-                        {/* X button to close without saving */}
+                        )}
+                        {/* X button to close without saving - only show if there's an existing log */}
+                        {hasExistingLog() && (
                         <button
                             onClick={onClose}
                             className="bg-gray-300/40 dark:bg-gray-800/40 hover:bg-gray-300 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 p-1 rounded-lg flex items-center justify-center transition-colors shadow-sm dark:shadow-white/5"
                         >
                             <X className="h-4 w-4" />
                         </button>
+                        )}
                     </div>
                 </div>
             </CardHeader>
@@ -342,7 +378,11 @@ const DailyLogActionRow = ({
     setNotes,
 }: DailyLogActionRowProps) => {
     // Local state to track note UI for each action
-    const [notesOpen, setNotesOpen] = useState<Record<number, boolean>>({});
+    const [notesOpen, setNotesOpen] = useState<Record<number, boolean>>(() => {
+        // Initialize with notes row open if there's already text
+        const hasNotes = notes[action.selected_action_id]?.trim();
+        return hasNotes ? { [action.selected_action_id]: true } : {};
+    });
     // Determine whether the current action is marked as done.
     const done = doneStatus[action.selected_action_id] || false;
     // Determine whether the notes textbox for this action is open.
@@ -379,16 +419,28 @@ const DailyLogActionRow = ({
                             {action.intent === "engage" ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
                         </button>
                         <button
-                            onClick={() =>
+                            onClick={() => {
+                                // If there's text, don't allow closing the notes
+                                if (notes[action.selected_action_id]?.trim()) {
+                                    return;
+                                }
+                                // Otherwise, toggle as normal
                                 setNotesOpen((prev) => ({
                                     ...prev,
                                     [action.selected_action_id]:
                                         !prev[action.selected_action_id],
-                                }))
-                            }
-                            className="bg-gray-300/40 dark:bg-gray-800/40 hover:bg-gray-300 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 p-1 rounded-lg flex items-center justify-center transition-colors shadow-sm"
+                                }));
+                            }}
+                            className={`p-1 rounded-lg flex items-center justify-center transition-colors shadow-sm ${
+                                notes[action.selected_action_id]?.trim()
+                                    ? "hover:bg-gray-300/40 hover:dark:bg-gray-800/40 bg-blue-400/40 dark:bg-blue-700/40 text-blue-600 dark:text-blue-400"
+                                    : "bg-gray-300/40 dark:bg-gray-800/40 hover:bg-gray-300 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400"
+                            }`}
                         >
-                            {isNotesOpen ? <PencilOff className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
+                            {/* Show pencil-off only if notes are open but no text exists */}
+                            {isNotesOpen && !notes[action.selected_action_id]?.trim() 
+                                ? <PencilOff className="h-4 w-4" /> 
+                                : <Pencil className="h-4 w-4" />}
                         </button>
                     </div>
                 </td>

@@ -1,0 +1,29 @@
+<svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+  <!-- Dark green background with rounded corners -->
+  <rect x="1" y="1" width="30" height="30" rx="6" ry="6" 
+        fill="#052e16" 
+        stroke="#4ade80" 
+        stroke-width="2"/>
+  
+  <!-- Shadow effect -->
+  <rect x="1.5" y="1.5" width="29" height="29" rx="5.5" ry="5.5" 
+        fill="none" 
+        stroke="rgba(0, 0, 0, 0.1)" 
+        stroke-width="0.5"/>
+  
+  <!-- First "d" - darker green (text-green-400) -->
+  <text x="11" y="22" 
+        font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" 
+        font-size="14" 
+        font-weight="600" 
+        text-anchor="middle" 
+        fill="#4ade80">d</text>
+  
+  <!-- Second "d" - lighter green (text-green-200) -->
+  <text x="21" y="22" 
+        font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" 
+        font-size="14" 
+        font-weight="600" 
+        text-anchor="middle" 
+        fill="#bbf7d0">d</text>
+</svg> 
