@@ -131,6 +131,10 @@ export const resetPasswordAction = async (formData: FormData) => {
 
 export const signOutAction = async () => {
   const supabase = await createClient();
+  
+  // Sign out from Supabase (clears server-side session and cookies)
   await supabase.auth.signOut();
+  
+  // Redirect to sign-in page
   return redirect("/sign-in");
 };
