@@ -87,7 +87,7 @@ function SelectedActionsTable({
                             variant="outline"
                         >
                             <Plus className="w-4 h-4" />
-                            <span className="hidden sm:ml-2 sm:inline">Add Actions</span>
+                            <span className="inline">Add Actions</span>
                         </Button>
                     </div>
                 </div>
@@ -97,11 +97,11 @@ function SelectedActionsTable({
                     <table className="w-full min-w-[400px]">
             <thead className="sticky top-0 z-20 bg-background">
                 <tr className="border-b-2 border-border border-l-2 border-l-transparent">
-                    <th className="pr-3 py-2 text-left text-xs font-semibold text-foreground">Action</th>
-                    <th className="px-3 py-2 text-center text-xs font-semibold text-foreground">Tracking Since</th>
-                    <th className="px-3 py-2 text-center text-xs font-semibold text-foreground">Intent</th>
-                    <th className="px-3 py-2 text-center text-xs font-semibold text-foreground">Group</th>
-                    <th className="px-3 py-2 text-center text-xs font-semibold text-foreground w-12">Remove</th>
+                    <th className="pr-3 py-2 text-left text-xs font-semibold text-foreground whitespace-nowrap">Action</th>
+                    <th className="px-3 py-2 text-center text-xs font-semibold text-foreground whitespace-nowrap">Group</th>
+                    <th className="px-3 py-2 text-center text-xs font-semibold text-foreground w-12 whitespace-nowrap">Remove</th>
+                    <th className="px-3 py-2 text-center text-xs font-semibold text-foreground whitespace-nowrap">Intent</th>
+                    <th className="px-3 py-2 text-center text-xs font-semibold text-foreground whitespace-nowrap">Tracking Since</th>
                 </tr>
             </thead>
             <tbody>
@@ -137,31 +137,11 @@ function SelectedActionsTable({
                                     }`}
                                 >
                                     <td className="px-3 py-2 align-middle">
-                                        <div className="text-sm text-foreground">
+                                        <div className="text-sm text-foreground whitespace-nowrap truncate max-w-xs">
                                             {action.action_name || "N/A"}
                                             {(action.dbSelectedActionId && !action.pendingAdd && Boolean(action.group_category) !== Boolean(action.originalGroupCategory)) && (
                                                 <span className="text-orange-500 ml-1">*</span>
                                             )}
-                                        </div>
-                                    </td>
-                                    <td className="px-3 py-2 text-center align-middle">
-                                        <div className="text-xs text-muted-foreground">
-                                            {action.added_to_tracking_on
-                                                ? new Date(action.added_to_tracking_on).toLocaleDateString("en-GB")
-                                                : "N/A"}
-                                        </div>
-                                    </td>
-                                    <td className="px-3 py-2 text-center align-middle">
-                                        <div className="flex justify-center items-center">
-                                            <Badge 
-                                                variant={action.intent === "engage" ? "default" : "secondary"}
-                                                className={`text-xs ${action.intent === "engage" 
-                                                    ? "bg-green-100 text-green-700 dark:bg-green-800/20 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-800/20" 
-                                                    : "bg-red-100 text-red-700 dark:bg-red-800/20 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-800/20"
-                                                }`}
-                                            >
-                                                {action.intent || "N/A"}
-                                            </Badge>
                                         </div>
                                     </td>
                                     <td className="px-3 py-2 text-center align-middle">
@@ -192,6 +172,26 @@ function SelectedActionsTable({
                                                     <X className="h-4 w-4" />
                                                 </button>
                                             )}
+                                        </div>
+                                    </td>
+                                    <td className="px-3 py-2 text-center align-middle">
+                                        <div className="flex justify-center items-center">
+                                            <Badge 
+                                                variant={action.intent === "engage" ? "default" : "secondary"}
+                                                className={`text-xs ${action.intent === "engage" 
+                                                    ? "bg-green-100 text-green-700 dark:bg-green-800/20 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-800/20" 
+                                                    : "bg-red-100 text-red-700 dark:bg-red-800/20 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-800/20"
+                                                }`}
+                                            >
+                                                {action.intent || "N/A"}
+                                            </Badge>
+                                        </div>
+                                    </td>
+                                    <td className="px-3 py-2 text-center align-middle">
+                                        <div className="text-xs text-muted-foreground">
+                                            {action.added_to_tracking_on
+                                                ? new Date(action.added_to_tracking_on).toLocaleDateString("en-GB")
+                                                : "N/A"}
                                         </div>
                                     </td>
                                 </tr>
@@ -405,7 +405,7 @@ function CustomActionDialog({
     }, [setNewAction]);
 
     return (
-        <DialogContent>
+        <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col !w-[calc(100vw-2rem)] sm:!w-[calc(100vw-2rem)] md:!w-[calc(100vw-3rem)] lg:!w-[calc(100vw-4rem)] rounded-lg">
             <DialogHeader>
                 <DialogTitle>Create Custom Action</DialogTitle>
             </DialogHeader>
@@ -426,51 +426,76 @@ function CustomActionDialog({
                     />
                 </div>
                 <div className="space-y-2">
-                    <label>Category</label>
-                    <div className="flex gap-2">
+                    <div className="flex items-center gap-1">
                         {!newAction.isNewCategory ? (
-                            <select
-                                value={newAction.category_name}
-                                onChange={(e) => handleCategoryChange(e.target.value)}
-                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                                <option value="">Select category</option>
-                                {categories.map(cat => (
-                                    <option key={cat} value={cat}>{cat}</option>
-                                ))}
-                            </select>
+                            <>
+                                <span>Select Category or </span>
+                                <button
+                                    type="button"
+                                    onClick={toggleNewCategory}
+                                    className="px-1 rounded-md bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 font-medium transition-colors"
+                                >
+                                    Create New
+                                </button>
+                            </>
                         ) : (
-                            <Input
-                                value={newAction.category_name}
-                                onChange={handleNewCategoryChange}
-                                placeholder="Enter new category name"
-                            />
+                            <>
+                                <span>Create Category or </span>
+                                <button
+                                    type="button"
+                                    onClick={toggleNewCategory}
+                                    className="px-1 rounded-md bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 font-medium transition-colors"
+                                >
+                                    Select Existing
+                                </button>
+                            </>
                         )}
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={toggleNewCategory}
-                        >
-                            <span className="hidden sm:inline">
-                                {newAction.isNewCategory ? "Select Existing" : "Create New"}
-                            </span>
-                            <span className="sm:hidden">
-                                {newAction.isNewCategory ? "Select" : "Create"}
-                            </span>
-                        </Button>
                     </div>
+                    {!newAction.isNewCategory ? (
+                        <select
+                            value={newAction.category_name}
+                            onChange={(e) => handleCategoryChange(e.target.value)}
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            <option value="">Select category</option>
+                            {categories.map(cat => (
+                                <option key={cat} value={cat}>{cat}</option>
+                            ))}
+                        </select>
+                    ) : (
+                        <Input
+                            value={newAction.category_name}
+                            onChange={handleNewCategoryChange}
+                            placeholder="Enter new category name"
+                        />
+                    )}
                 </div>
                 <div className="space-y-2">
                     <label>Intent</label>
-                    <select
-                        value={newAction.intent}
-                        onChange={(e) => handleIntentChange(e.target.value as "engage" | "avoid")}
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                        <option value="">Select intent</option>
-                        <option value="engage">Engage</option>
-                        <option value="avoid">Avoid</option>
-                    </select>
+                    <div className="flex gap-2">
+                        <button
+                            type="button"
+                            onClick={() => handleIntentChange("engage")}
+                            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors ${
+                                newAction.intent === "engage"
+                                    ? "bg-green-100 text-green-700 dark:bg-green-800/20 dark:text-green-400 border border-green-700 dark:border-green-400"
+                                    : "bg-green-50 text-green-600 dark:bg-green-900/10 dark:text-green-500 border border-transparent hover:bg-green-100 dark:hover:bg-green-900/20"
+                            }`}
+                        >
+                            engage
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => handleIntentChange("avoid")}
+                            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors ${
+                                newAction.intent === "avoid"
+                                    ? "bg-red-100 text-red-700 dark:bg-red-800/20 dark:text-red-400 border border-red-700 dark:border-red-400"
+                                    : "bg-red-50 text-red-600 dark:bg-red-900/10 dark:text-red-500 border border-transparent hover:bg-red-100 dark:hover:bg-red-900/20"
+                            }`}
+                        >
+                            avoid
+                        </button>
+                    </div>
                 </div>
                 <div className="flex items-center space-x-2">
                     <Checkbox
@@ -537,7 +562,8 @@ function AddActionsModal({
                             size="sm"
                         >
                             <Plus className="w-4 h-4" />
-                            <span className="hidden sm:ml-2 sm:inline">Create Custom Action</span>
+                            <span className="sm:hidden">Create New</span>
+                            <span className="hidden sm:ml-2 sm:inline">Create New Action</span>
                         </Button>
                     </div>
                     
