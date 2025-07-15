@@ -1,0 +1,32 @@
+{
+    "name": "@dailydrive/db",
+    "version": "1.0.0",
+    "private": true,
+    "main": "./src/index.ts",
+    "types": "./src/index.ts",
+    "scripts": {
+        "db:generate": "drizzle-kit generate",
+        "db:migrate": "drizzle-kit migrate",
+        "db:push": "drizzle-kit push",
+        "db:push:force": "drizzle-kit push --force",
+        "db:studio": "drizzle-kit studio",
+        "db:seed": "tsx src/seed.ts",
+        "db:drop": "drizzle-kit drop",
+        "build": "tsc",
+        "dev": "tsc --watch",
+        "lint": "eslint src --ext .ts,.tsx --ignore-path .gitignore",
+        "type-check": "tsc --noEmit"
+    },
+    "dependencies": {
+        "drizzle-orm": "^0.39.0",
+        "postgres": "^3.4.4"
+    },
+    "devDependencies": {
+        "drizzle-kit": "^0.31.4",
+        "@types/node": "^22.10.2",
+        "tsx": "^4.16.0",
+        "typescript": "^5.7.2",
+        "eslint": "^9.31.0",
+        "esbuild": "^0.25.6"
+    }
+}
