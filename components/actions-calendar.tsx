@@ -309,7 +309,7 @@ export default function ActionsCalendar({
         <div className="h-full flex flex-col overflow-hidden">
             <div className="flex-1 overflow-hidden flex flex-col">
                 {/* Header Row for Weekday Labels */}
-                <div className="flex justify-center mb-2 flex-shrink-0">
+                <div className="flex justify-center mb-1 flex-shrink-0">
                     <div className="flex gap-1">
                         {WEEK_DAYS.map((day, index) => (
                             <div
