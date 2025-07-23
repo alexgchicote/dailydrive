@@ -21,7 +21,8 @@
     "clean": "turbo clean"
   },
   "devDependencies": {
-    "turbo": "^2.5.4"
+    "turbo": "^2.5.4",
+    "next": "^15.2.4"
   },
   "packageManager": "pnpm@10.13.1"
 }
