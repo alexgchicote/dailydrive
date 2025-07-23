@@ -24,7 +24,7 @@ function SelectedActionsPage() {
     const [showAddActionsModal, setShowAddActionsModal] = useState(false);
     const [addActionsCategoryFilter, setAddActionsCategoryFilter] = useState<string | undefined>(undefined);
     const [newAction, setNewAction] = useState({
-        action_name: "",
+        name: "",
         category_name: "",
         category_id: null as number | null,
         intent: "engage" as "engage" | "avoid",
@@ -32,7 +32,7 @@ function SelectedActionsPage() {
         addToSelected: true
     });
     const [categories, setCategories] = useState<string[]>([]);
-    const [categoryData, setCategoryData] = useState<Array<{ category_id: number; category_name: string }>>([]);
+    const [categoryData, setCategoryData] = useState<Array<{ id: number; name: string }>>([]);
     const [saving, setSaving] = useState(false);
 
     // Check if there are any pending changes
@@ -76,9 +76,9 @@ function SelectedActionsPage() {
         console.log("Fetching categories for user:", uid);
         const { data, error } = await supabase
             .from("actions_categories")
-            .select("category_id, category_name")
-            .or(`category_type.eq.predefined,created_by_id.eq.${uid}`)
-            .order("category_name");
+            .select("id, name")
+            .or(`type.eq.predefined,created_by_id.eq.${uid}`)
+            .order("name");
 
         if (error) {
             console.error("Error fetching categories:", error);
@@ -86,7 +86,7 @@ function SelectedActionsPage() {
         } else if (data) {
             console.log("Raw fetched categories data:", data);
             // Store both category names and IDs
-            setCategories(data.map(row => row.category_name));
+            setCategories(data.map(row => row.name));
             // Store the category data for later use
             setCategoryData(data);
         } else {
@@ -134,7 +134,7 @@ function SelectedActionsPage() {
                             ...a,
                             pendingAdd: false,
                             selected_action_id: a.dbSelectedActionId, // restore original DB id
-                            added_to_tracking_on: a.added_to_tracking_on, // restore original date
+                            added_to_tracking_at: a.added_to_tracking_at, // restore original date
                         };
                     }
                     // Otherwise, mark it as pending add with a temporary selected_action_id.
@@ -142,7 +142,7 @@ function SelectedActionsPage() {
                         ...a,
                         pendingAdd: true,
                         selected_action_id: Date.now(), // temporary id
-                        added_to_tracking_on: new Date().toISOString(),
+                        added_to_tracking_at: new Date().toISOString(),
                     };
                 }
                 return a;
@@ -199,7 +199,7 @@ function SelectedActionsPage() {
                         ...a,
                         pendingAdd: false,
                         selected_action_id: null,
-                        added_to_tracking_on: undefined
+                        added_to_tracking_at: undefined
                     } : a
             )
         );
@@ -225,8 +225,8 @@ function SelectedActionsPage() {
             const insertData = pendingAdditions.map((action) => ({
                 user_id: userId,
                 action_id: action.action_id.toString(),
-                added_to_tracking_on: action.added_to_tracking_on,
-                removed_from_tracking_on: null,
+                added_to_tracking_at: action.added_to_tracking_at,
+                removed_from_tracking_at: null,
                 group_category: action.group_category,
             }));
             const { error: insertError } = await supabase
@@ -242,7 +242,7 @@ function SelectedActionsPage() {
             const removalTimestamp = new Date().toISOString();
             const { error: updateError } = await supabase
                 .from("selected_actions")
-                .update({ removed_from_tracking_on: removalTimestamp })
+                .update({ removed_from_tracking_at: removalTimestamp })
                 .in("selected_action_id", pendingRemovals);
             if (updateError) {
                 console.error("Error updating pending removals:", updateError);
@@ -263,7 +263,7 @@ function SelectedActionsPage() {
                     supabase
                         .from("selected_actions")
                         .update({ group_category: action.group_category })
-                        .eq("selected_action_id", action.dbSelectedActionId)
+                        .eq("id", action.dbSelectedActionId)
                 )
             );
         }
@@ -276,7 +276,7 @@ function SelectedActionsPage() {
 
     // Memoize the create action handler
     const handleCreateCustomAction = React.useCallback(async () => {
-        if (!userId || !newAction.action_name || !newAction.category_name) {
+        if (!userId || !newAction.name || !newAction.category_name) {
             toast.error("Missing required fields");
             return;
         }
@@ -298,7 +298,7 @@ function SelectedActionsPage() {
             const existingAction = userActions.find(
                 action => 
                     action.action_name && 
-                    action.action_name.toLowerCase() === newAction.action_name.toLowerCase() &&
+                    action.action_name.toLowerCase() === newAction.name.toLowerCase() &&
                     action.category_name?.toLowerCase() === newAction.category_name.toLowerCase()
             );
 
@@ -310,7 +310,7 @@ function SelectedActionsPage() {
             // Create the action without adding to selected (we'll handle that locally)
             const { data, error } = await supabase.rpc('create_custom_action', {
                 p_user_id: userId,
-                p_action_name: newAction.action_name,
+                p_action_name: newAction.name,
                 p_category_name: newAction.category_name,
                 p_category_id: newAction.isNewCategory ? null : newAction.category_id,
                 p_intent: newAction.intent
@@ -325,7 +325,7 @@ function SelectedActionsPage() {
                 // Add the new action to local state using form data
                 const newActionData: UserAction = {
                     action_id: newActionId,
-                    action_name: newAction.action_name,
+                    action_name: newAction.name,
                     category_name: newAction.category_name,
                     intent: newAction.intent,
                     selected_action_id: newAction.addToSelected ? Date.now() : null, // temporary id if adding to selected
@@ -333,7 +333,7 @@ function SelectedActionsPage() {
                     pendingRemoval: false,
                     group_category: false,
                     originalGroupCategory: false,
-                    added_to_tracking_on: newAction.addToSelected ? new Date().toISOString() : undefined,
+                    added_to_tracking_at: newAction.addToSelected ? new Date().toISOString() : undefined,
                     dbSelectedActionId: undefined
                 };
 
@@ -348,7 +348,7 @@ function SelectedActionsPage() {
             
             // Reset form
             setNewAction({
-                action_name: "",
+                name: "",
                 category_name: "",
                 category_id: null,
                 intent: "engage",

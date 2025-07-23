@@ -2,13 +2,22 @@
 export type {
   User,
   NewUser,
-  Action,
-  NewAction,
-  DailyLog,
-  NewDailyLog,
-  ActionCompletion,
-  NewActionCompletion,
-} from './schema';
+  UserDay,
+  NewUserDay,
+  DailyActionsLog,
+  NewDailyActionsLog,
+  UserDailyJournal,
+  NewUserDailyJournal,
+  ActionsCategory,
+  NewActionsCategory,
+  ActionsList,
+  NewActionsList,
+  SelectedAction,
+  NewSelectedAction,
+} from '../schema';
+
+// Re-export validation schemas and types
+export * from './validation';
 
 // Common database utilities
 export type DatabaseError = {
@@ -23,12 +32,15 @@ export type PaginationOptions = {
   offset?: number;
 };
 
-export type SortOptions = {
-  field: string;
-  direction: 'asc' | 'desc';
+export type SortOrder = 'asc' | 'desc';
+
+export type SortOptions<T> = {
+  column: keyof T;
+  order: SortOrder;
 };
 
-export type QueryOptions = {
+export type QueryOptions<T> = {
   pagination?: PaginationOptions;
-  sort?: SortOptions;
+  sort?: SortOptions<T>;
+  filters?: Partial<T>;
 }; 

@@ -14,7 +14,7 @@ interface UserAction {
     action_id: number;
     action_name?: string;
     category_name?: string;
-    added_to_tracking_on?: string;
+    added_to_tracking_at?: string;
     intent?: string;
     selected_action_id: number | null;
     pendingAdd?: boolean;
@@ -189,8 +189,8 @@ function SelectedActionsTable({
                                     </td>
                                     <td className="px-3 py-2 text-center align-middle">
                                         <div className="text-xs text-muted-foreground">
-                                            {action.added_to_tracking_on
-                                                ? new Date(action.added_to_tracking_on).toLocaleDateString("en-GB")
+                                            {action.added_to_tracking_at
+                                                ? new Date(action.added_to_tracking_at).toLocaleDateString("en-GB")
                                                 : "N/A"}
                                         </div>
                                     </td>
@@ -309,7 +309,7 @@ function AvailableActionsTable({ actions, onAddAction, onUndoAdd }: AvailableAct
 // Props interface for CustomActionDialog
 interface CustomActionDialogProps {
     newAction: {
-        action_name: string;
+        name: string;
         category_name: string;
         category_id: number | null;
         intent: "engage" | "avoid";
@@ -318,31 +318,9 @@ interface CustomActionDialogProps {
     };
     setNewAction: (action: any) => void;
     categories: string[];
-    categoryData: Array<{ category_id: number; category_name: string }>;
+    categoryData: Array<{ id: number; name: string }>;
     onClose: () => void;
     onCreate: () => void;
-}
-
-// Props interface for AddActionsModal
-interface AddActionsModalProps {
-    isOpen: boolean;
-    onClose: () => void;
-    actions: UserAction[];
-    onAddAction: (action: UserAction) => void;
-    onUndoAdd?: (action: UserAction) => void;
-    categoryFilter?: string;
-    newAction: {
-        action_name: string;
-        category_name: string;
-        category_id: number | null;
-        intent: "engage" | "avoid";
-        isNewCategory: boolean;
-        addToSelected: boolean;
-    };
-    setNewAction: (action: any) => void;
-    categories: string[];
-    categoryData: Array<{ category_id: number; category_name: string }>;
-    onCreateCustomAction: () => void;
 }
 
 // Custom Action Dialog Component
@@ -362,7 +340,7 @@ function CustomActionDialog({
     }, [setNewAction]);
 
     const handleCategoryChange = React.useCallback((value: string) => {
-        const selectedCategory = categoryData.find(cat => cat.category_name === value);
+        const selectedCategory = categoryData.find(cat => cat.name === value);
         if (!selectedCategory) {
             console.error("Selected category not found in category data");
             return;
@@ -371,7 +349,7 @@ function CustomActionDialog({
         setNewAction((prev: ActionState) => ({ 
             ...prev, 
             category_name: value,
-            category_id: selectedCategory.category_id,
+            category_id: selectedCategory.id,
             isNewCategory: false 
         }));
     }, [setNewAction, categoryData]);
@@ -420,7 +398,7 @@ function CustomActionDialog({
                     <label htmlFor="action-name">Action Name</label>
                     <Input
                         id="action-name"
-                        value={newAction.action_name}
+                        value={newAction.name}
                         onChange={handleActionNameChange}
                         placeholder="Enter action name"
                     />
@@ -513,13 +491,35 @@ function CustomActionDialog({
                 <Button
                     type="submit"
                     className="w-full"
-                    disabled={!newAction.action_name || !newAction.category_name}
+                    disabled={!newAction.name || !newAction.category_name}
                 >
                     Create Action
                 </Button>
             </form>
         </DialogContent>
     );
+}
+
+// Props interface for AddActionsModal
+interface AddActionsModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    actions: UserAction[];
+    onAddAction: (action: UserAction) => void;
+    onUndoAdd?: (action: UserAction) => void;
+    categoryFilter?: string;
+    newAction: {
+        name: string;
+        category_name: string;
+        category_id: number | null;
+        intent: "engage" | "avoid";
+        isNewCategory: boolean;
+        addToSelected: boolean;
+    };
+    setNewAction: (action: any) => void;
+    categories: string[];
+    categoryData: Array<{ id: number; name: string }>;
+    onCreateCustomAction: () => void;
 }
 
 // Add Actions Modal Component

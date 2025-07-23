@@ -1,95 +1,129 @@
 import { eq, and, desc } from 'drizzle-orm';
 import { db } from '../index';
-import { actions, actionCompletions } from '../schema';
-import type { Action, NewAction, ActionCompletion } from '../types';
+import { 
+  actionsList, 
+  actionsCategories, 
+  selectedActions, 
+  dailyActionsLog
+} from '../schema';
+import type { 
+  ActionsList,
+  NewActionsList,
+  ActionsCategory,
+  NewActionsCategory,
+  SelectedAction,
+  NewSelectedAction
+} from '../schema';
 
-export async function getActionById(id: string): Promise<Action | undefined> {
+export async function getActionById(id: number): Promise<ActionsList | undefined> {
   const result = await db
     .select()
-    .from(actions)
-    .where(eq(actions.id, id))
+    .from(actionsList)
+    .where(eq(actionsList.id, id))
     .limit(1);
   
   return result[0];
 }
 
-export async function getActionsByUserId(userId: string): Promise<Action[]> {
+export async function getActionsByCategory(categoryId: number): Promise<ActionsList[]> {
   return await db
     .select()
-    .from(actions)
-    .where(and(eq(actions.userId, userId), eq(actions.isActive, true)))
-    .orderBy(actions.createdAt);
+    .from(actionsList)
+    .where(eq(actionsList.categoryId, categoryId))
+    .orderBy(actionsList.name);
 }
 
-export async function createAction(actionData: NewAction): Promise<Action> {
-  const result = await db
-    .insert(actions)
-    .values(actionData)
-    .returning();
-  
-  return result[0];
-}
-
-export async function updateAction(id: string, actionData: Partial<NewAction>): Promise<Action | undefined> {
-  const result = await db
-    .update(actions)
-    .set({
-      ...actionData,
-      updatedAt: new Date(),
-    })
-    .where(eq(actions.id, id))
-    .returning();
-  
-  return result[0];
-}
-
-export async function deleteAction(id: string): Promise<boolean> {
-  const result = await db
-    .update(actions)
-    .set({
-      isActive: false,
-      updatedAt: new Date(),
-    })
-    .where(eq(actions.id, id))
-    .returning();
-  
-  return result.length > 0;
-}
-
-export async function getActionsByCategory(userId: string, category: string): Promise<Action[]> {
+export async function getActionsByIntent(intent: 'engage' | 'avoid'): Promise<ActionsList[]> {
   return await db
     .select()
-    .from(actions)
+    .from(actionsList)
+    .where(eq(actionsList.intent, intent))
+    .orderBy(actionsList.name);
+}
+
+export async function getActionsByType(type: 'predefined' | 'custom'): Promise<ActionsList[]> {
+  return await db
+    .select()
+    .from(actionsList)
+    .where(eq(actionsList.type, type))
+    .orderBy(actionsList.name);
+}
+
+export async function getUserCustomActions(userId: string): Promise<ActionsList[]> {
+  return await db
+    .select()
+    .from(actionsList)
     .where(and(
-      eq(actions.userId, userId),
-      eq(actions.category, category),
-      eq(actions.isActive, true)
+      eq(actionsList.type, 'custom'),
+      eq(actionsList.createdById, userId)
     ))
-    .orderBy(actions.title);
+    .orderBy(actionsList.name);
 }
 
-export async function completeAction(userId: string, actionId: string, date: string, value: number = 1, notes?: string): Promise<ActionCompletion> {
+export async function createAction(action: NewActionsList): Promise<ActionsList> {
   const result = await db
-    .insert(actionCompletions)
-    .values({
-      userId,
-      actionId,
-      date,
-      value,
-      notes,
-    })
+    .insert(actionsList)
+    .values(action)
     .returning();
   
   return result[0];
 }
 
-export async function getActionCompletionsForDate(userId: string, date: string): Promise<ActionCompletion[]> {
+export async function updateAction(id: number, updates: Partial<NewActionsList>): Promise<ActionsList | undefined> {
+  const result = await db
+    .update(actionsList)
+    .set(updates)
+    .where(eq(actionsList.id, id))
+    .returning();
+  
+  return result[0];
+}
+
+export async function deleteAction(id: number): Promise<void> {
+  await db
+    .delete(actionsList)
+    .where(eq(actionsList.id, id));
+}
+
+// Categories queries
+export async function getCategoryById(id: number): Promise<ActionsCategory | undefined> {
+  const result = await db
+    .select()
+    .from(actionsCategories)
+    .where(eq(actionsCategories.id, id))
+    .limit(1);
+  
+  return result[0];
+}
+
+export async function getAllCategories(): Promise<ActionsCategory[]> {
   return await db
     .select()
-    .from(actionCompletions)
-    .where(and(
-      eq(actionCompletions.userId, userId),
-      eq(actionCompletions.date, date)
-    ))
-    .orderBy(desc(actionCompletions.completedAt));
+    .from(actionsCategories)
+    .orderBy(actionsCategories.name);
+}
+
+export async function createCategory(category: NewActionsCategory): Promise<ActionsCategory> {
+  const result = await db
+    .insert(actionsCategories)
+    .values(category)
+    .returning();
+  
+  return result[0];
+}
+
+export async function updateCategory(id: number, updates: Partial<NewActionsCategory>): Promise<ActionsCategory | undefined> {
+  const result = await db
+    .update(actionsCategories)
+    .set(updates)
+    .where(eq(actionsCategories.id, id))
+    .returning();
+  
+  return result[0];
+}
+
+export async function deleteCategory(id: number): Promise<void> {
+  await db
+    .delete(actionsCategories)
+    .where(eq(actionsCategories.id, id));
 } 

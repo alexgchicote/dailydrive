@@ -1,63 +1,29 @@
-import { eq, and } from 'drizzle-orm';
+import { eq, and, desc } from 'drizzle-orm';
 import { db } from '../index';
-import { users } from '../schema';
-import type { User, NewUser } from '../types';
+import { User } from '../schema';
+
+// Note: Since we're using Supabase Auth, user management is handled by auth.users
+// These functions are more for reference and would typically be done via Supabase client
 
 export async function getUserById(id: string): Promise<User | undefined> {
-  const result = await db
-    .select()
-    .from(users)
-    .where(eq(users.id, id))
-    .limit(1);
-  
-  return result[0];
+  // This would typically be done via Supabase client, not direct DB access
+  // Keeping this as a placeholder for the interface
+  throw new Error('User queries should be done via Supabase client');
 }
 
 export async function getUserByEmail(email: string): Promise<User | undefined> {
-  const result = await db
-    .select()
-    .from(users)
-    .where(eq(users.email, email))
-    .limit(1);
-  
-  return result[0];
+  // This would typically be done via Supabase client, not direct DB access
+  throw new Error('User queries should be done via Supabase client');
 }
 
-export async function createUser(userData: NewUser): Promise<User> {
-  const result = await db
-    .insert(users)
-    .values(userData)
-    .returning();
-  
-  return result[0];
+export async function getAllUsers(): Promise<User[]> {
+  // This would typically be done via Supabase client with proper pagination
+  throw new Error('User queries should be done via Supabase client');
 }
 
-export async function updateUser(id: string, userData: Partial<NewUser>): Promise<User | undefined> {
-  const result = await db
-    .update(users)
-    .set({
-      ...userData,
-      updatedAt: new Date(),
-    })
-    .where(eq(users.id, id))
-    .returning();
-  
-  return result[0];
-}
-
-export async function deleteUser(id: string): Promise<boolean> {
-  const result = await db
-    .delete(users)
-    .where(eq(users.id, id))
-    .returning();
-  
-  return result.length > 0;
-}
-
-export async function getActiveUsers(): Promise<User[]> {
-  return await db
-    .select()
-    .from(users)
-    .where(eq(users.isActive, true))
-    .orderBy(users.createdAt);
+// Helper function to validate user exists (for use in other queries)
+export async function validateUserExists(userId: string): Promise<boolean> {
+  // This would typically check against auth.users via Supabase client
+  // For now, we'll assume the user exists if they're making authenticated requests
+  return true;
 } 

@@ -1,0 +1,774 @@
+{
+  "id": "32785a9f-2dca-47f3-9c74-8a9d674c69d7",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.actions_categories": {
+      "name": "actions_categories",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'predefined'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_by_id": {
+          "name": "created_by_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "idx_predefined_categories_unique_name": {
+          "name": "idx_predefined_categories_unique_name",
+          "columns": [
+            {
+              "expression": "name",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "type = 'predefined'",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_custom_categories_unique_per_user": {
+          "name": "idx_custom_categories_unique_per_user",
+          "columns": [
+            {
+              "expression": "created_by_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "name",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "type = 'custom'",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "actions_categories_created_by_id_users_id_fk": {
+          "name": "actions_categories_created_by_id_users_id_fk",
+          "tableFrom": "actions_categories",
+          "tableTo": "users",
+          "columnsFrom": [
+            "created_by_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "actions_categories_category_type_check": {
+          "name": "actions_categories_category_type_check",
+          "value": "type IN ('predefined', 'custom')"
+        },
+        "actions_categories_custom_must_have_creator_check": {
+          "name": "actions_categories_custom_must_have_creator_check",
+          "value": "(type <> 'custom') OR (created_by_id IS NOT NULL)"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.actions_list": {
+      "name": "actions_list",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "category_id": {
+          "name": "category_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "intent": {
+          "name": "intent",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'predefined'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_by_id": {
+          "name": "created_by_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "idx_predefined_actions_unique_name": {
+          "name": "idx_predefined_actions_unique_name",
+          "columns": [
+            {
+              "expression": "name",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "type = 'predefined'",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_custom_actions_unique_per_user": {
+          "name": "idx_custom_actions_unique_per_user",
+          "columns": [
+            {
+              "expression": "created_by_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "name",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "type = 'custom'",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "actions_list_category_id_actions_categories_id_fk": {
+          "name": "actions_list_category_id_actions_categories_id_fk",
+          "tableFrom": "actions_list",
+          "tableTo": "actions_categories",
+          "columnsFrom": [
+            "category_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "actions_list_created_by_id_users_id_fk": {
+          "name": "actions_list_created_by_id_users_id_fk",
+          "tableFrom": "actions_list",
+          "tableTo": "users",
+          "columnsFrom": [
+            "created_by_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "actions_list_intent_check": {
+          "name": "actions_list_intent_check",
+          "value": "intent IN ('engage', 'avoid')"
+        },
+        "actions_list_action_type_check": {
+          "name": "actions_list_action_type_check",
+          "value": "type IN ('predefined', 'custom')"
+        },
+        "actions_list_custom_must_have_creator_check": {
+          "name": "actions_list_custom_must_have_creator_check",
+          "value": "(type <> 'custom') OR (created_by_id IS NOT NULL)"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.daily_actions_log": {
+      "name": "daily_actions_log",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "selected_action_id": {
+          "name": "selected_action_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_day_id": {
+          "name": "user_day_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "log_date": {
+          "name": "log_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "outcome": {
+          "name": "outcome",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "daily_actions_log_unique_valid_entry": {
+          "name": "daily_actions_log_unique_valid_entry",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "selected_action_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "log_date",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "daily_actions_log_user_id_users_id_fk": {
+          "name": "daily_actions_log_user_id_users_id_fk",
+          "tableFrom": "daily_actions_log",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        },
+        "daily_actions_log_selected_action_id_selected_actions_id_fk": {
+          "name": "daily_actions_log_selected_action_id_selected_actions_id_fk",
+          "tableFrom": "daily_actions_log",
+          "tableTo": "selected_actions",
+          "columnsFrom": [
+            "selected_action_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "daily_actions_log_user_day_id_user_days_id_fk": {
+          "name": "daily_actions_log_user_day_id_user_days_id_fk",
+          "tableFrom": "daily_actions_log",
+          "tableTo": "user_days",
+          "columnsFrom": [
+            "user_day_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "daily_actions_log_outcome_check": {
+          "name": "daily_actions_log_outcome_check",
+          "value": "outcome IN ('positive', 'negative', 'neutral')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.selected_actions": {
+      "name": "selected_actions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "action_id": {
+          "name": "action_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "added_to_tracking_at": {
+          "name": "added_to_tracking_at",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "removed_from_tracking_at": {
+          "name": "removed_from_tracking_at",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "group_category": {
+          "name": "group_category",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        }
+      },
+      "indexes": {
+        "unique_active_selected_action": {
+          "name": "unique_active_selected_action",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "action_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "removed_from_tracking_at IS NULL",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "selected_actions_user_id_users_id_fk": {
+          "name": "selected_actions_user_id_users_id_fk",
+          "tableFrom": "selected_actions",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        },
+        "selected_actions_action_id_actions_list_id_fk": {
+          "name": "selected_actions_action_id_actions_list_id_fk",
+          "tableFrom": "selected_actions",
+          "tableTo": "actions_list",
+          "columnsFrom": [
+            "action_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "selected_actions_check": {
+          "name": "selected_actions_check",
+          "value": "(removed_from_tracking_at IS NULL) OR (removed_from_tracking_at >= added_to_tracking_at)"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.user_daily_journals": {
+      "name": "user_daily_journals",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "log_date": {
+          "name": "log_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "content": {
+          "name": "content",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "idx_user_daily_journals_user_id_log_date": {
+          "name": "idx_user_daily_journals_user_id_log_date",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "log_date",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "user_daily_journals_user_id_users_id_fk": {
+          "name": "user_daily_journals_user_id_users_id_fk",
+          "tableFrom": "user_daily_journals",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "user_daily_journals_user_id_log_date_unique": {
+          "name": "user_daily_journals_user_id_log_date_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "user_id",
+            "log_date"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.user_days": {
+      "name": "user_days",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "log_date": {
+          "name": "log_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "actions_day_grade": {
+          "name": "actions_day_grade",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "num_engage_actions_total": {
+          "name": "num_engage_actions_total",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "num_engage_actions_positive": {
+          "name": "num_engage_actions_positive",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "num_engage_actions_neutral": {
+          "name": "num_engage_actions_neutral",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "num_avoid_actions_total": {
+          "name": "num_avoid_actions_total",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "num_avoid_actions_positive": {
+          "name": "num_avoid_actions_positive",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "num_categories_tracked": {
+          "name": "num_categories_tracked",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "num_engage_actions_negative": {
+          "name": "num_engage_actions_negative",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "num_avoid_actions_negative": {
+          "name": "num_avoid_actions_negative",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "user_days_unique_valid_entry": {
+          "name": "user_days_unique_valid_entry",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "log_date",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "user_days_user_id_users_id_fk": {
+          "name": "user_days_user_id_users_id_fk",
+          "tableFrom": "user_days",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "user_days_num_avoid_actions_total_check": {
+          "name": "user_days_num_avoid_actions_total_check",
+          "value": "num_avoid_actions_total >= 0"
+        },
+        "user_days_num_categories_tracked_check": {
+          "name": "user_days_num_categories_tracked_check",
+          "value": "num_categories_tracked >= 0"
+        },
+        "user_days_num_engage_actions_negative_check": {
+          "name": "user_days_num_engage_actions_negative_check",
+          "value": "num_engage_actions_negative >= 0"
+        },
+        "user_days_num_avoid_actions_negative_check": {
+          "name": "user_days_num_avoid_actions_negative_check",
+          "value": "num_avoid_actions_negative >= 0"
+        },
+        "user_days_num_engage_actions_positive_check": {
+          "name": "user_days_num_engage_actions_positive_check",
+          "value": "num_engage_actions_positive >= 0"
+        },
+        "user_days_num_engage_actions_total_check": {
+          "name": "user_days_num_engage_actions_total_check",
+          "value": "num_engage_actions_total >= 0"
+        },
+        "user_days_num_engage_actions_neutral_check": {
+          "name": "user_days_num_engage_actions_neutral_check",
+          "value": "num_engage_actions_neutral >= 0"
+        },
+        "user_days_num_avoid_actions_positive_check": {
+          "name": "user_days_num_avoid_actions_positive_check",
+          "value": "num_avoid_actions_positive >= 0"
+        }
+      },
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

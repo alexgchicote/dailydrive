@@ -383,6 +383,25 @@ const DailyLogActionRow = ({
         const hasNotes = notes[action.selected_action_id]?.trim();
         return hasNotes ? { [action.selected_action_id]: true } : {};
     });
+
+    // Update notesOpen when notes change (fixes issue with notes being hidden despite existing)
+    useEffect(() => {
+        const hasNotes = notes[action.selected_action_id]?.trim();
+        
+        if (hasNotes && !notesOpen[action.selected_action_id]) {
+            // Open notes row if notes exist but row is closed
+            setNotesOpen(prev => ({
+                ...prev,
+                [action.selected_action_id]: true
+            }));
+        } else if (!hasNotes && notesOpen[action.selected_action_id]) {
+            // Close notes row if no notes exist but row is open (e.g., when switching days)
+            setNotesOpen(prev => ({
+                ...prev,
+                [action.selected_action_id]: false
+            }));
+        }
+    }, [notes, action.selected_action_id]); // Removed notesOpen from dependencies
     // Determine whether the current action is marked as done.
     const done = doneStatus[action.selected_action_id] || false;
     // Determine whether the notes textbox for this action is open.

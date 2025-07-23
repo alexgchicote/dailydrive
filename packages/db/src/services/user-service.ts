@@ -1,77 +1,53 @@
-import { getUserById, getUserByEmail, createUser, updateUser, deleteUser } from '../queries/users';
-import { getActionsByUserId } from '../queries/actions';
-import type { User, NewUser, Action } from '../types';
+import { validateUserExists } from '../queries/users';
+import { getUserCustomActions } from '../queries/actions';
+import type { ActionsList } from '../types';
 
 export class UserService {
-  static async findById(id: string): Promise<User | null> {
+  // Note: User CRUD operations are handled by Supabase Auth
+  // These methods are for database operations related to users
+
+  static async validateUser(userId: string): Promise<boolean> {
     try {
-      const user = await getUserById(id);
-      return user || null;
+      return await validateUserExists(userId);
     } catch (error) {
-      console.error('Error finding user by ID:', error);
-      throw new Error('Failed to find user');
+      console.error('Error validating user:', error);
+      throw new Error('Failed to validate user');
     }
   }
 
-  static async findByEmail(email: string): Promise<User | null> {
+  static async getUserCustomActions(userId: string): Promise<ActionsList[]> {
     try {
-      const user = await getUserByEmail(email);
-      return user || null;
-    } catch (error) {
-      console.error('Error finding user by email:', error);
-      throw new Error('Failed to find user');
-    }
-  }
-
-  static async create(userData: NewUser): Promise<User> {
-    try {
-      // Validate that email doesn't already exist
-      const existingUser = await getUserByEmail(userData.email);
-      if (existingUser) {
-        throw new Error('User with this email already exists');
-      }
-
-      return await createUser(userData);
-    } catch (error) {
-      console.error('Error creating user:', error);
-      throw new Error('Failed to create user');
-    }
-  }
-
-  static async update(id: string, userData: Partial<NewUser>): Promise<User> {
-    try {
-      const user = await updateUser(id, userData);
-      if (!user) {
+      // Validate user exists first
+      const userExists = await validateUserExists(userId);
+      if (!userExists) {
         throw new Error('User not found');
       }
-      return user;
+
+      return await getUserCustomActions(userId);
     } catch (error) {
-      console.error('Error updating user:', error);
-      throw new Error('Failed to update user');
+      console.error('Error getting user custom actions:', error);
+      throw new Error('Failed to get user custom actions');
     }
   }
 
-  static async delete(id: string): Promise<boolean> {
+  static async getUserActionCount(userId: string): Promise<number> {
     try {
-      return await deleteUser(id);
+      const actions = await getUserCustomActions(userId);
+      return actions.length;
     } catch (error) {
-      console.error('Error deleting user:', error);
-      throw new Error('Failed to delete user');
+      console.error('Error getting user action count:', error);
+      throw new Error('Failed to get user action count');
     }
   }
 
-  static async getUserWithActions(userId: string): Promise<{ user: User; actions: Action[] } | null> {
+  // Helper method to check if user can perform action
+  static async canUserAccessAction(userId: string, actionId: number): Promise<boolean> {
     try {
-      const user = await getUserById(userId);
-      if (!user) {
-        return null;
-      }
-
-      const actions = await getActionsByUserId(userId);
-      return { user, actions };
+      const userActions = await getUserCustomActions(userId);
+      return userActions.some(action => action.id === actionId);
     } catch (error) {
-      console.error('Error getting user with actions:', error);
-      throw new Error('Failed to get user with actions');
+      console.error('Error checking user action access:', error);
+      return false;
     }
   }
 } 

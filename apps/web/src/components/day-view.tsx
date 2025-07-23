@@ -29,9 +29,17 @@ export function DayView({ selectedDate, selectedActions, userHistory, userId, on
     // Note: We're not setting state here, just using the value
     const shouldBeInEditMode = isEditMode || !dayInfo;
     
-    // Determine which actions to use - declare this BEFORE the return statement
-    // so it's in scope for the entire component
-    const logActions = dayInfo ? dayInfo.logs : selectedActions; // TODO: change this to be the selected actions on the day selected, not hard coded to today.
+    // Determine which actions to use:
+    // - If logs exist for this date, use the actual logs  
+    // - If no logs exist, use the user's selected actions but with clean/empty status
+    const logActions = dayInfo ? dayInfo.logs : selectedActions.map(action => ({
+        ...action,
+        status: false,
+        parentStatus: false,
+        notes: '',
+        outcome: 'neutral',
+        // Keep the action info but clear the logged values for fresh logging
+    })) as unknown as UserHistoryLogEntry[];
 
     return (
         <>

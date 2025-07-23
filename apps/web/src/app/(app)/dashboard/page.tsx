@@ -72,16 +72,16 @@ const DashboardPage = () => {
     const { data, error } = await supabase
       .from("selected_actions")
       .select(`
-        selected_action_id,
+        id,
         action_id,
-        added_to_tracking_on,
+        added_to_tracking_at,
         group_category,
         actions_list (
-        action_name,
+          name,
             intent,
             actions_categories (
-                category_id,
-                category_name
+                id,
+                name
             )
         ),
         daily_actions_log (
@@ -91,22 +91,22 @@ const DashboardPage = () => {
         )
     `)
       .eq("user_id", uid) // filters selected_actions by user
-      .filter("added_to_tracking_on", "lte", today)
-      .or(`removed_from_tracking_on.is.null,removed_from_tracking_on.gt.${today}`)
+      .filter("added_to_tracking_at", "lte", today)
+      .or(`removed_from_tracking_at.is.null,removed_from_tracking_at.gt.${today}`)
       .eq("daily_actions_log.log_date", today)
     if (error) {
       console.error("Error fetching selected actions:", error);
     } else {
 
       const flatData: UserHistoryLogEntry[] = data.map((row: any) => ({
-        selected_action_id: row.selected_action_id,
+        selected_action_id: row.id,
         status: row.daily_actions_log?.[0]?.status ?? null,
         outcome: String(row.daily_actions_log?.[0]?.outcome),
         notes: String(row.daily_actions_log?.[0]?.notes || ''),
-        action_name: String(row.actions_list?.action_name || ''),
+        action_name: String(row.actions_list?.name || ''),
         intent: row.actions_list?.intent as "engage" | "avoid",
-        category_id: Number(row.actions_list?.actions_categories?.category_id),
-        category_name: String(row.actions_list?.actions_categories?.category_name || ''),
+        category_id: Number(row.actions_list?.actions_categories?.id),
+        category_name: String(row.actions_list?.actions_categories?.name || ''),
         group_category: Boolean(row.group_category)
       }));
       setSelectedActions(flatData || []);
@@ -132,11 +132,11 @@ const DashboardPage = () => {
           selected_actions (
             group_category,
             actions_list (
-              action_name,
+              name,
               intent,
               actions_categories (
-                category_id,
-                category_name
+                id,
+                name
               )
             )
           )
@@ -164,11 +164,11 @@ const DashboardPage = () => {
           const selectedAction = ((log.selected_actions || {}) as unknown) as {
             group_category: boolean;
             actions_list: {
-              action_name: string;
+              name: string;
               intent: "engage" | "avoid";
               actions_categories: {
-                category_id: number;
-                category_name: string;
+                id: number;
+                name: string;
               };
             };
           };
@@ -180,10 +180,10 @@ const DashboardPage = () => {
             status: log.status,
             outcome: String(log.outcome),
             notes: String(log.notes || ''),
-            action_name: String(actionsList.action_name || ''),
+            action_name: String(actionsList.name || ''),
             intent: actionsList.intent as "engage" | "avoid",
-            category_id: Number(categories.category_id),
-            category_name: String(categories.category_name || ''),
+            category_id: Number(categories.id),
+            category_name: String(categories.name || ''),
             group_category: Boolean(selectedAction.group_category)
           };
         })
